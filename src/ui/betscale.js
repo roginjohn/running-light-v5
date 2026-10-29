@@ -1,15 +1,17 @@
-// 1/2 and x2 on the bet field (v3 batch 3): scale every square's bet at once. Pure; uses the locked engine limits
-// (1-10 per square, 200 per round, the balance) and never touches the engine. START still re-checks every limit.
-import { MAX_PER_SQUARE, MAX_PER_ROUND, MIN_BET } from '../engine/config.js';
+// 1/2 and x2 on the bet field (v3 batch 3): scale every bet at once. Pure; uses the locked engine limits
+// (1-1,000 per tier, 1,000 per round, the balance) and never touches the engine. START still re-checks every limit.
+// TEMPORARY (Batch 2 adapter, removed in Batch 5): bets are keyed by tier now; MAX_PER_TIER replaces MAX_PER_SQUARE.
+import { MAX_PER_ROUND, MIN_BET } from '../engine/config.js';
 import { totalOf } from '../engine/bets.js';
+import { MAX_PER_TIER } from './adapter.js';
 
-const squaresOf = (bets) => Object.keys(bets).map(Number).sort((a, b) => a - b);
+const keysOf = (bets) => Object.keys(bets).map(Number).sort((a, b) => a - b);
 
-/** Halve every square's bet (rounded down, never below 1). Returns { bets, changed, limit: null }. */
+/** Halve every bet (rounded down, never below 1). Returns { bets, changed, limit: null }. */
 export function halveBets(bets) {
   const next = {};
   let changed = false;
-  for (const n of squaresOf(bets)) {
+  for (const n of keysOf(bets)) {
     next[n] = Math.max(MIN_BET, Math.floor(bets[n] / 2));
     if (next[n] !== bets[n]) changed = true;
   }
@@ -17,18 +19,18 @@ export function halveBets(bets) {
 }
 
 /**
- * Double every square's bet, clamped to 10 per square and to min(200, balance) for the round. When the round cap
- * cuts in, the room left is shared out one credit at a time in square order, so the squares stay even.
- * Returns { bets, changed, limit } where limit is null | 'square' | 'round' | 'credits' (the cap that cut in;
+ * Double every bet, clamped to 1,000 per tier and to min(1,000, balance) for the round. When the round cap cuts in,
+ * the room left is shared out one credit at a time in key order, so the bets stay even.
+ * Returns { bets, changed, limit } where limit is null | 'tier' | 'round' | 'credits' (the cap that cut in;
  * the keys match the engine's TOASTS).
  */
 export function doubleBets(bets, balance) {
-  const ns = squaresOf(bets);
+  const ns = keysOf(bets);
   const target = {};
-  let squareCut = false;
+  let tierCut = false;
   for (const n of ns) {
-    target[n] = Math.min(MAX_PER_SQUARE, bets[n] * 2);
-    if (bets[n] * 2 > MAX_PER_SQUARE) squareCut = true;
+    target[n] = Math.min(MAX_PER_TIER, bets[n] * 2);
+    if (bets[n] * 2 > MAX_PER_TIER) tierCut = true;
   }
   const cap = Math.min(MAX_PER_ROUND, Math.max(0, balance));
   const capKind = MAX_PER_ROUND <= balance ? 'round' : 'credits';
@@ -38,7 +40,7 @@ export function doubleBets(bets, balance) {
   if (totalOf(target) <= cap) {
     Object.assign(next, target);
     total = totalOf(target);
-    if (squareCut) limit = 'square';
+    if (tierCut) limit = 'tier';
   } else {
     let grew = true;
     while (total < cap && grew) {

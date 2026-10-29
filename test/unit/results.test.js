@@ -1,4 +1,4 @@
-// v3 batch 5 result states: the big multiplier per result (win colour, Double Run "960.00x + 24.00x", 00.00x after a
+// v3 batch 5 result states: the big multiplier per result (win colour, Double Run "100.00x + 20.00x", 00.00x after a
 // loss), and the result CSS: flat win / loss stops with no glow, pulse, chase or WIN tag on any tile, the old v2
 // result rules gone, and the gamble flip as one transform-only disc.
 import test from 'node:test';
@@ -13,38 +13,45 @@ const rules = [...CSS.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^}]*\})*\s*\}/g, '')
 const keyframes = Object.fromEntries([...CSS.matchAll(/@keyframes ([\w-]+) \{((?:[^{}]*\{[^}]*\})*)\s*\}/g)].map((m) => [m[1], m[2]]));
 const props = (body) => body.split(';').map((d) => d.split(':')[0].trim()).filter(Boolean);
 
-const round = (o) => ({ s1: 13, s2: null, doubleRun: false, bets: { 13: 5, 3: 2 }, gambles: [], currentWin: 2400, baseWin: 2400, ...o });
+// v5 batch 2: bets are keyed by tier (#13 is 20x, #3 and #29 50x, #21 100x, #33 20x, #40 10x, #1/#6 5x, #2/#30 blank)
+const round = (o) => ({ s1: 13, s2: null, doubleRun: false, bets: { 20: 5, 50: 2 }, gambles: [], currentWin: 100, baseWin: 100, ...o });
 const S = (phase, r) => ({ phase, round: r });
 const UI = (o = {}) => ({ light1: null, light2: null, gambleLoss: null, ...o });
 
 test('big number: winning multiplier in the win colour; 00.00 after a loss; never a stop before the light gets there', () => {
-  assert.equal(bigValue(S('GAMBLE_OFFER', round()), UI()), '480.00');
+  assert.equal(bigValue(S('GAMBLE_OFFER', round()), UI()), '20.00');
   assert.deepEqual(bigResult(S('GAMBLE_OFFER', round()), UI()), { win: true, extra: null });
   assert.deepEqual(bigResult(S('GAMBLE', round()), UI()), { win: true, extra: null });
   assert.deepEqual(bigResult(S('PAYOUT', round()), UI()), { win: true, extra: null }, 'collected: still the won look');
   // loss (loss.png): the stop is shown while it resolves, then 00.00x grey
-  const lost = round({ s1: 26, bets: { 13: 5 } });
-  assert.equal(bigValue(S('RESOLVING', lost), UI()), '24.00');
+  const lost = round({ s1: 1, bets: { 20: 5 } });
+  assert.equal(bigValue(S('RESOLVING', lost), UI()), '05.00');
   assert.equal(bigValue(S('BETTING', lost), UI({ showLastStop: true })), '00.00');
   assert.deepEqual(bigResult(S('BETTING', lost), UI({ showLastStop: true })), { win: false, extra: null });
+  // a blank stop reads 00.00 throughout
+  assert.equal(bigValue(S('RESOLVING', round({ s1: 2 })), UI()), '00.00');
   // gamble lost: not the win colour
   assert.deepEqual(bigResult(S('PAYOUT', round({ currentWin: 0 })), UI({ gambleLoss: { pick: 'red', result: 'white' } })), { win: false, extra: null });
   // while the light runs: the square under it, whatever is stored
-  assert.equal(bigValue(S('SPINNING', round()), UI({ light1: { idx: 30 } })), '96.00');
+  assert.equal(bigValue(S('SPINNING', round()), UI({ light1: { idx: 29 } })), '50.00');
+  assert.equal(bigValue(S('SPINNING', round()), UI({ light1: { idx: 30 } })), '00.00', 'blank square under the light');
   assert.equal(bigValue(S('SPINNING', round()), UI()), '00.00', 'before the first frame: nothing leaks');
 });
 
-test('big number in a Double Run: "960.00x + 24.00x" only when both squares won', () => {
-  const both = round({ s1: 21, s2: 33, doubleRun: true, bets: { 21: 2, 33: 5 }, baseWin: 2040, currentWin: 2040 });
-  assert.equal(bigValue(S('GAMBLE_OFFER', both), UI()), '960.00');
-  assert.deepEqual(bigResult(S('GAMBLE_OFFER', both), UI()), { win: true, extra: '24.00' });
-  const first = round({ s1: 21, s2: 33, doubleRun: true, bets: { 21: 2 } });
+test('big number in a Double Run: "100.00x + 20.00x" only when both lights won', () => {
+  const both = round({ s1: 21, s2: 33, doubleRun: true, bets: { 100: 2, 20: 5 }, baseWin: 300, currentWin: 300 });
+  assert.equal(bigValue(S('GAMBLE_OFFER', both), UI()), '100.00');
+  assert.deepEqual(bigResult(S('GAMBLE_OFFER', both), UI()), { win: true, extra: '20.00' });
+  const first = round({ s1: 21, s2: 33, doubleRun: true, bets: { 100: 2 } });
   assert.deepEqual(bigResult(S('GAMBLE_OFFER', first), UI()), { win: true, extra: null });
-  const second = round({ s1: 21, s2: 33, doubleRun: true, bets: { 33: 5 } });
-  assert.equal(bigValue(S('GAMBLE_OFFER', second), UI()), '24.00', 'only the second square won');
+  const second = round({ s1: 21, s2: 33, doubleRun: true, bets: { 20: 5 } });
+  assert.equal(bigValue(S('GAMBLE_OFFER', second), UI()), '20.00', 'only the second light won');
+  // both lights on the same tier
+  const same = round({ s1: 1, s2: 6, doubleRun: true, bets: { 5: 10 }, baseWin: 100, currentWin: 100 });
+  assert.deepEqual(bigResult(S('GAMBLE_OFFER', same), UI()), { win: true, extra: '05.00' });
   // the second light running: its square, not a stored result
-  assert.equal(bigValue(S('DOUBLE_RUN', both), UI({ light2: { idx: 40 } })), '480.00');
-  const none = round({ s1: 21, s2: 33, doubleRun: true, bets: { 3: 1 } });
+  assert.equal(bigValue(S('DOUBLE_RUN', both), UI({ light2: { idx: 40 } })), '10.00');
+  const none = round({ s1: 21, s2: 33, doubleRun: true, bets: { 50: 1 } });
   assert.equal(bigValue(S('BETTING', none), UI({ showLastStop: true })), '00.00');
 });
 

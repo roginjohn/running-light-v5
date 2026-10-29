@@ -12,11 +12,11 @@ import { MULT } from '../../src/engine/config.js';
 const DOC = JSON.parse(readFileSync(new URL('../../docs/design-v3/tokens.json', import.meta.url), 'utf8'));
 const STYLES = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8');
 const ui0 = () => ({ light1: null, light2: null, gambleLoss: null });
-const round = (o) => ({ s1: 12, s2: null, bets: { 12: 5 }, doubleRun: false, ...o });
+const round = (o) => ({ s1: 13, s2: null, bets: { 20: 5 }, doubleRun: false, ...o }); // v5: tier-keyed, #13 is 20x
 
-test('big number: multiplier format 00.00 / 24.00 / 480.00 / 1920.00', () => {
+test('big number: multiplier format 00.00 / 05.00 / 50.00 / 200.00', () => {
   assert.equal(bigMult(0), '00.00');
-  assert.deepEqual([24, 96, 480, 960, 1920].map(bigMult), ['24.00', '96.00', '480.00', '960.00', '1920.00']);
+  assert.deepEqual([5, 10, 20, 50, 100, 200].map(bigMult), ['05.00', '10.00', '20.00', '50.00', '100.00', '200.00']);
 });
 
 test('big number: 00.00 while betting, the multiplier under the light while running, then the stop', () => {
@@ -30,14 +30,14 @@ test('big number: 00.00 while betting, the multiplier under the light while runn
     assert.equal(bigValue({ phase: 'SPINNING', round: r }, ui), bigMult(MULT[n]), `light on #${n}`);
   }
   ui.light1 = null;
-  assert.equal(bigValue({ phase: 'RESOLVING', round: r }, ui), '1920.00');
-  assert.equal(bigValue({ phase: 'GAMBLE_OFFER', round: round({ s1: 12 }) }, ui), '96.00');
+  assert.equal(bigValue({ phase: 'RESOLVING', round: r }, ui), '200.00');
+  assert.equal(bigValue({ phase: 'GAMBLE_OFFER', round: round({ s1: 13 }) }, ui), '20.00');
   // a new round after the result: back to idle
-  assert.equal(bigValue({ phase: 'BETTING', round: round({ s1: 12 }) }, ui), '00.00');
+  assert.equal(bigValue({ phase: 'BETTING', round: round({ s1: 13 }) }, ui), '00.00');
   // the second light wins over the first while it runs
   ui.light1 = { idx: 3, done: true };
   ui.light2 = { idx: 21, trail: null, level: null };
-  assert.equal(bigValue({ phase: 'DOUBLE_RUN', round: round({ s1: 3, s2: 21, doubleRun: true }) }, ui), '960.00');
+  assert.equal(bigValue({ phase: 'DOUBLE_RUN', round: round({ s1: 3, s2: 21, doubleRun: true }) }, ui), '100.00');
 });
 
 test('light classes: lit, two trail steps, landing, reduced-motion fade levels, second light', () => {

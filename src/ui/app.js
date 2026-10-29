@@ -10,6 +10,7 @@ import { totalOf, countOf, sameBets } from '../engine/bets.js';
 import { createCryptoRng } from '../engine/rng.js';
 import { halveBets, doubleBets } from './betscale.js';
 import { recordTotal, loadTotals, saveTotals } from './bettotals.js';
+import { TOP_TIER } from './adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
 
 const REGIONS = ['frame', 'stage', 'track', 'centre', 'top', 'credits', 'bar', 'controls', 'toast', 'tip', 'modal', 'start'];
 const GAME_REGIONS = ['credits', 'track', 'centre', 'top', 'bar', 'controls'];
@@ -446,8 +447,8 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         const target = r.currentWin;
         countTween = tween(Math.min(1500, 400 + target / 4), (x) => { ui.displayWin = Math.round(target * x); paintWin(); }, () => { ui.displayWin = null; countTween = null; paintWin(); }, (x) => 1 - (1 - x) ** 4);
       }
-      if (top >= 480) {
-        audio.play(top >= 1920 ? 'sfx_win_jackpot' : 'sfx_win_big');
+      if (top >= 50) { // TEMPORARY (Batch 2 adapter): 50x and up use the big-win sound, the 200x the jackpot one
+        audio.play(top >= TOP_TIER ? 'sfx_win_jackpot' : 'sfx_win_big');
         audio.duck(true);
         wait(2500, () => audio.duck(false));
       } else audio.play('sfx_win_small');
@@ -586,7 +587,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         audio.setSettings(s.settings);
         onInit();
         return;
-      case 'ADD_BET': audio.play('sfx_chip_place', { step: (s.bets[evt.action.square] || 1) - 1 }); break;
+      case 'ADD_BET': audio.play('sfx_chip_place', { step: Math.min(9, Math.ceil((s.bets[evt.action.tier] || 1) / s.chip) - 1) }); break;
       case 'REMOVE_BET': case 'UNDO': case 'CLEAR': audio.play('sfx_chip_remove'); break;
       case 'REBET': audio.play('sfx_chip_place'); break;
       case 'SELECT_CHIP': audio.play('sfx_chip_select'); break;
@@ -750,7 +751,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   function scaleBets(kind) {
     const c = ctx();
     const s = game.state;
-    if (c.mode !== 'bet' || !c.canBet || !c.total || !game.canDispatch({ type: 'ADD_BET', square: 1 })) return null;
+    if (c.mode !== 'bet' || !c.canBet || !c.total || !game.canDispatch({ type: 'ADD_BET', tier: 5 })) return null;
     const r = kind === 'half' ? halveBets(s.bets) : doubleBets(s.bets, s.balance);
     if (r.limit) {
       audio.play('sfx_deny');
@@ -763,7 +764,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     audio.play(kind === 'half' ? 'sfx_chip_remove' : 'sfx_chip_place');
     render();
     const n = countOf(r.bets);
-    if (!r.limit) announce(`Total bet ${V.fmt(totalOf(r.bets))} on ${n} square${n === 1 ? '' : 's'}.`);
+    if (!r.limit) announce(`Total bet ${V.fmt(totalOf(r.bets))} on ${n} tier${n === 1 ? '' : 's'}.`);
     return { ok: true };
   }
 

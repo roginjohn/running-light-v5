@@ -121,6 +121,10 @@ svg { display: block; }
 .chip.c1 { --chip-bg: var(--c-chip-1); --chip-ink: var(--c-chip-1-ink); } .chip.c5 { --chip-bg: var(--c-chip-5); --chip-ink: var(--c-chip-5-ink); }
 .chip.c10 { --chip-bg: var(--c-chip-10); --chip-ink: var(--c-chip-10-ink); } .chip.c25 { --chip-bg: var(--c-chip-25); --chip-ink: var(--c-chip-25-ink); }
 .chip.c50 { --chip-bg: var(--c-chip-50); --chip-ink: var(--c-chip-50-ink); }
+/* TEMPORARY (Batch 2 adapter, removed in Batch 5): the 7 v5 chips wrap onto a second row in the v3 rail, and the
+   100 / 500 chips use the proposed fills until the batch-4 chip tokens (after the contrast check) */
+.chips { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+.chip.c100 { --chip-bg: #6d28d9; --chip-ink: #fff; } .chip.c500 { --chip-bg: #b45309; --chip-ink: #fff; }
 .chip.sel::after { content: ''; position: absolute; inset: -4px; border-radius: var(--r-chip); border: var(--b-focus) solid var(--c-focus-ring); }
 .chip[aria-disabled="true"] { opacity: .4; }
 .chip[aria-disabled="true"].sel::after { border-color: var(--c-text-dim); }

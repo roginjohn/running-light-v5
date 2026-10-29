@@ -1,14 +1,15 @@
 // v3 batch 4: pure helpers for the track's running light and the centre's big multiplier. No DOM, no layout
 // reads: the controller turns these strings into class swaps and one textContent write per light step.
 import { MULT } from '../engine/config.js';
+import { betOn } from './adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
 
-/** Winning squares of the current round (only once revealed). */
+/** Winning squares of the current round (only once revealed): a stop wins when its tier has a bet. */
 export function winners(s, ui) {
   const r = s.round;
   if (!r) return { w1: null, w2: null };
   const revealed = ['GAMBLE_OFFER', 'GAMBLE', 'PAYOUT'].includes(s.phase) || ui.gambleLoss;
-  const w1 = (revealed || s.phase === 'DOUBLE_RUN') && r.bets[r.s1] ? r.s1 : null;
-  const w2 = revealed && r.s2 && r.bets[r.s2] ? r.s2 : null;
+  const w1 = (revealed || s.phase === 'DOUBLE_RUN') && betOn(r.bets, r.s1) ? r.s1 : null;
+  const w2 = revealed && r.s2 && betOn(r.bets, r.s2) ? r.s2 : null;
   return { w1, w2 };
 }
 
