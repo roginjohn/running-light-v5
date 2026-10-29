@@ -265,12 +265,12 @@ export function rightLayer(state, ui, ctx) {
     const live = p === 'GAMBLE_OFFER';
     const win = ui.displayWin ?? r.currentWin;
     const gDis = !live || !!gambleWhy;
-    const gsub = !live ? '' : gambleWhy === 'cap' ? 'cap 30,000 reached' : gambleWhy === 'max' ? 'no gambles left' : `50/50 · ${MAX_GAMBLES - r.gambles.length} left · G`;
+    const gsub = !live ? '' : gambleWhy === 'cap' ? `cap ${fmt(GAMBLE_CAP)} reached` : gambleWhy === 'max' ? 'no gambles left' : `50/50 · ${MAX_GAMBLES - r.gambles.length} left · G`;
     s.push(hit('btn-collect', button(cx0, sy, 266, 140, 'COLLECT', 'collect', bstate(ui, 'btn-collect', !live), `${fmt(win)} credits · Enter`, 40, SIGN), {
       label: `Collect ${fmt(win)} credits (Enter)`, disabled: !live, ring: `r,${cx0},${sy},266,140,14`, area: [cx0, sy, 266, 146, 14],
     }));
     s.push(hit('btn-gamble', button(cx0 + 282, sy, 266, 140, 'GAMBLE ×2', 'gamble', bstate(ui, 'btn-gamble', gDis), gsub, 38, SIGN), {
-      label: gambleWhy === 'cap' ? 'Gamble unavailable: doubling would exceed the 30,000 cap' : gambleWhy === 'max' ? 'Gamble unavailable: 3 gambles used' : 'Gamble times 2, double or nothing (G)',
+      label: gambleWhy === 'cap' ? `Gamble unavailable: doubling would exceed the ${fmt(GAMBLE_CAP)} cap` : gambleWhy === 'max' ? 'Gamble unavailable: 3 gambles used' : 'Gamble times 2, double or nothing (G)',
       disabled: gDis, ring: `r,${cx0 + 282},${sy},266,140,14`, area: [cx0 + 282, sy, 266, 146, 14],
     }));
   } else {
@@ -303,7 +303,7 @@ export function footerText(state, gambleWhy) {
   if (RUN_PHASES.includes(p)) return 'Light running  ·  only M (mute) is active  ·  result was decided before the light started';
   if (p === 'GAMBLE_OFFER') {
     const both = r.doubleRun && r.bets[r.s1] && r.bets[r.s2];
-    if (gambleWhy) return `Enter  collect ${fmt(r.currentWin)}   ·   gamble unavailable (${gambleWhy === 'cap' ? 'doubling would exceed 30,000' : '3 gambles used'})   ·   Space  press focused button`;
+    if (gambleWhy) return `Enter  collect ${fmt(r.currentWin)}   ·   gamble unavailable (${gambleWhy === 'cap' ? `doubling would exceed ${fmt(GAMBLE_CAP)}` : '3 gambles used'})   ·   Space  press focused button`;
     if (both) return 'Double Run: two different squares won  ·  each square pays once  ·  Enter collect  ·  G gamble  ·  Space press focused button';
     return `Enter  collect ${fmt(r.currentWin)}   ·   G  gamble ×2 (pick red or white, fair 50/50, double or nothing)   ·   Space  press focused button`;
   }
@@ -337,7 +337,7 @@ export function squareTooltip(n, state) {
 export function buttonTooltip(id, ctx) {
   const map = {
     'btn-rebet': ctx.rebetWhy ? ['Rebet unavailable', ctx.rebetWhy, 1702, 466] : null,
-    'btn-gamble': ctx.gambleWhy === 'cap' ? ['Gamble unavailable', 'Doubling would exceed the 30,000 cap', 1742, 562]
+    'btn-gamble': ctx.gambleWhy === 'cap' ? ['Gamble unavailable', `Doubling would exceed the ${fmt(GAMBLE_CAP)} cap`, 1742, 562]
       : ctx.gambleWhy === 'max' ? ['Gamble unavailable', 'Max 3 gambles used this round', 1742, 562] : null,
     'm-gamble': ctx.modalGambleWhy ? ['Gamble unavailable', ctx.modalGambleWhy, 434, 744] : null,
     'btn-start': ctx.startWhy ? ['START unavailable', ctx.startWhy, 1602, 562] : null,
@@ -415,7 +415,7 @@ export function gambleModal(state, ui, gambleWhy) {
   const live = state.phase === 'GAMBLE' && !revealing;
   let glab, gsub, gdis = !live;
   if (!pick) { glab = 'PICK A COLOUR'; gsub = 'Gamble needs a red or white pick'; gdis = true; } else { glab = `GAMBLE ON ${pick.toUpperCase()}`; gsub = `win → ${fmt(win * 2)}  ·  lose → 0  ·  G`; }
-  if (gambleWhy === 'cap') { glab = pick ? glab : 'GAMBLE ×2'; gsub = 'cap 30,000 reached'; gdis = true; }
+  if (gambleWhy === 'cap') { glab = pick ? glab : 'GAMBLE ×2'; gsub = `cap ${fmt(GAMBLE_CAP)} reached`; gdis = true; }
   if (gambleWhy === 'max') { gsub = 'no gambles left'; gdis = true; }
   s.push(hit('m-gamble', button(x + 80, y + 612, 400, 112, glab, 'gamble', bstate(ui, 'm-gamble', gdis), gsub, glab.length > 14 ? 32 : 36, SIGN), {
     label: gdis ? `${glab}, unavailable: ${gsub}` : `${glab} (G or Space)`, disabled: gdis, ring: `r,${x + 80},${y + 612},400,112,14`, area: [x + 80, y + 612, 400, 118, 14],
@@ -560,7 +560,7 @@ function paytableTab() {
   s.push(t(x0, yb + 22, 'Pays = total return including your bet. Example: 5 on a 96x square returns 480.', 15, C['text-muted-on-dark'], UI, 700, 'start'));
   const blocks = [
     ['Double Run', ['1 in 25 rounds a second (turquoise) light runs.', 'It always stops on a different square.', 'Each square pays once per round.']],
-    ['Gamble', ['After a win: fair 50/50, double or nothing.', 'Up to 3 times. Collect any time.', 'Off if the doubled win would exceed 30,000.']],
+    ['Gamble', ['After a win: fair 50/50, double or nothing.', 'Up to 3 times. Collect any time.', `Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`]],
     ['Limits', ['1–10 credits per square.', '1–200 credits per round, never above balance.', 'Free refill to 1,000 when credits run out.']],
   ];
   blocks.forEach(([hd, lines], i) => {

@@ -62,10 +62,14 @@ export function gambleDraw(rng) {
   return rng.randInt(2) === 0 ? 'red' : 'white';
 }
 
-/** Why gambling is not allowed (null when allowed). Offered on a win of GAMBLE_CAP (300,000) or less. */
+/**
+ * Why gambling is not allowed (null when allowed). A gamble may never produce a win above GAMBLE_CAP (300,000),
+ * so it is offered only while the doubled win (win × 2) is GAMBLE_CAP or less, i.e. on a win of 150,000 or less.
+ * Checked before every flip, up to MAX_GAMBLES per win.
+ */
 export function gambleBlockReason(win, gamblesUsed) {
   if (!(win > 0)) return 'nowin';
   if (gamblesUsed >= MAX_GAMBLES) return 'max';
-  if (win > GAMBLE_CAP) return 'cap';
+  if (win * 2 > GAMBLE_CAP) return 'cap';
   return null;
 }

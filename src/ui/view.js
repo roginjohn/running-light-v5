@@ -161,7 +161,7 @@ function actionRow(s, c) {
   return `<div class="acts">${one('btn-undo', 'Undo', 'Z', undoDis)}${one('btn-clear', 'Clear', 'C', clearDis)}${one('btn-rebet', c.ghosts && !c.rebetWhy ? `Rebet ${lastT}` : 'Rebet', 'R', rebetDis, c.ghosts && !rebetDis, c.rebetWhy && s.lastBets ? c.rebetWhy : '')}</div>`;
 }
 
-const gambleWhyText = (gw) => (gw === 'cap' ? `Gamble is off on wins over ${fmt(GAMBLE_CAP)}` : gw === 'max' ? 'No gambles left for this win' : '');
+const gambleWhyText = (gw) => (gw === 'cap' ? `Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)}` : gw === 'max' ? 'No gambles left for this win' : '');
 
 /** Primary button(s): Start (blue); after a win the Collect (green, dark text) + Gamble ×2 (blue) stack; in the
  *  gamble, Gamble on <colour> (blue) + Collect, which is locked (outline) while the disc flips. */
@@ -300,7 +300,7 @@ export function centreModel(s, ui, c) {
     if (r.doubleRun && w1 && w2) sub = `Two squares won this round. A second light ran and could not stop on #${r.s1}.`;
     else if (r.doubleRun && w1) sub = `The second light stopped on #${r.s2} (no win there).`;
     else if (r.doubleRun) sub = `The first light stopped on #${r.s1} (no win there).`;
-    else sub = c.gambleWhy ? `Collect it. Gamble is off above ${fmt(GAMBLE_CAP)} credits.` : 'Collect it, or gamble it on a fair 50/50.';
+    else sub = c.gambleWhy ? `Collect it. Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.` : 'Collect it, or gamble it on a fair 50/50.';
     return { ...M, status, headline: `You win ${fmt(r.baseWin)}`, sub, cards, band: true };
   }
   if (m === 'payout') {
@@ -377,7 +377,7 @@ function gamblePanel(s, ui, c, L) {
     <div class="gdiscs" role="radiogroup" aria-label="Pick a colour">${disc('red')}${mid}${disc('white')}</div>
     <div class="gmsg" data-role="gamble-instr" aria-live="polite">${msg}</div>
     <div class="gcards"${loss ? ' data-role="gamble-loss"' : ''}>${cards}</div>${recap ? `<div class="grec">${recap}</div>` : ''}</div>
-    <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is turned off on wins over ${fmt(GAMBLE_CAP)} credits.`}</div>`;
+    <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is turned off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.`}</div>`;
 }
 
 /** Centre (v3 batches 4–5): status pills, the big multiplier, a flat title and sub line, the pays row (the won
@@ -515,7 +515,7 @@ export function fairnessModal(L) {
     ${item('Drawn first.', 'When you press Start, the result is drawn and saved on this device before the light starts. The light only shows that saved result, and reloading shows the same one.')}
     ${item('Weighted squares.', `Squares are not equally likely: weights ${weights} per square for ${TIERS.map((t) => `${t}x`).join(' / ')}, and ${BLANK_WEIGHT} for each of the ${BLANK_COUNT} blank squares, of ${fmt(TOTAL_WEIGHT)}. A blank square pays nothing.`)}
     ${item(`Double Run, 1 in ${DOUBLE_RUN_ONE_IN}.`, 'Drawn in the same step. The second light never stops on the first square.')}
-    ${item('Gamble, fair 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, and off on wins over ${fmt(GAMBLE_CAP)}.`)}
+    ${item('Gamble, fair 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, and off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`)}
     ${item('RTP about 95.4%.', 'The theoretical long-run average return. Any session can be higher or lower.')}
     ${item('Randomness.', 'Your browser’s built-in crypto random number generator, on this device. Nothing is sent anywhere.')}</ul>
     <div class="ifoot"><span>${L.dockMode ? 'Play credits only' : 'Esc closes this window'}</span><span>No real money value</span></div>`);
@@ -562,14 +562,14 @@ function paytableBody() {
   h += '</table><div class="pnotes">';
   h += `<p><b>You bet on a tier.</b> Each light that stops on a square of that tier pays: a bet of 5 on 10x returns 50 (stake included). The ${BLANK_COUNT} blank squares pay nothing.</p>`;
   h += `<p><b>Double Run · 1 in ${DOUBLE_RUN_ONE_IN} rounds:</b> a second light runs and can’t stop on the first square. Both stops pay.</p>`;
-  h += `<p><b>Gamble:</b> fair 50/50 on red or white, up to ${MAX_GAMBLES} times per win. Off on wins over ${fmt(GAMBLE_CAP)}.</p>`;
+  h += `<p><b>Gamble:</b> fair 50/50 on red or white, up to ${MAX_GAMBLES} times per win. Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</p>`;
   h += `<p><b>Limits:</b> ${MIN_BET}–${fmt(MAX_PER_TIER)} per tier, ${fmt(MAX_PER_ROUND)} per round. Chips ${CHIPS.join(', ')}.</p>`;
   h += '<p><b>RTP ≈95.4%:</b> the theoretical long-run average return, not a promise for any session.</p></div>';
   return h;
 }
 
 /** Help: the four steps, how the gamble really works (engine rules: fair 50/50 drawn and saved when Gamble is
- *  pressed, ×2 or lose the win, max 3 per win, off above the 30,000 cap), and the play-credits note. */
+ *  pressed, ×2 or lose the win, max 3 per win, off if the doubled win would exceed the 300,000 cap), and the play-credits note. */
 function helpBody() {
   const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Click a square to bet on its tier, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
   let h = `<ol class="isteps">${steps.map(([a, b], i) => `<li><span class="n">${i + 1}</span><span><b>${a}</b><br>${b}</span></li>`).join('')}</ol>`;
@@ -577,7 +577,7 @@ function helpBody() {
     <li>After a win, press <b>Gamble ×2</b>, pick <b>red</b> or <b>white</b>, then press Gamble on your colour.</li>
     <li>Red or white is drawn at that moment, a fair 50/50, and saved before the disc flips.</li>
     <li><b>Match:</b> your win doubles. Gamble again or Collect. <b>No match:</b> the win is lost. Nothing else is taken.</li>
-    <li>Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off on wins over ${fmt(GAMBLE_CAP)}.</li></ul>`;
+    <li>Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</li></ul>`;
   h += `<p class="inavy"><b>Play credits only.</b> No real money value. Credits can’t be bought, sold or cashed out. Free refill to ${fmt(REFILL_AMOUNT)} whenever you run out.</p>`;
   return h;
 }

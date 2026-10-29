@@ -1,6 +1,6 @@
 // E1.5 gamble, E1.6 bet limits, E1.7 state transitions, E1.8 recovery, E1.9 refill, E5 edge cases.
 // v5 batch 2: bets are keyed by tier (5, 10, 20, 50, 100, 200), limits 1,000 per tier and per round, credits 10,000,
-// gamble offered on wins of 300,000 or less. Squares used below (MATH-SPEC-C §3): #1/#6 5x, #5/#24 10x,
+// gamble offered only while the doubled win stays within the 300,000 cap (win <= 150,000). Squares used below (MATH-SPEC-C §3): #1/#6 5x, #5/#24 10x,
 // #13/#17 20x, #3 50x, #21 100x, #8 200x, #2/#4/#30 blank.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -87,35 +87,54 @@ test('E1.5 max 3 gambles; Collect always works', () => {
   assert.equal(g.state.balance, bal + 80);
 });
 
-test('E1.5 300,000 cap: a win of 300,000 may gamble (-> 600,000); 300,001 is blocked; the cap never truncates', () => {
+test('E1.5 300,000 cap: a win of 150,000 may gamble (-> 300,000); 150,001 is blocked; the cap never truncates', () => {
   const { g } = newGame();
   g.test.setBalance(1000000);
   toOffer(g, { 200: 1 }, 8);
-  g.state.round.currentWin = 300000; // white-box: exercise the boundary on the live record
-  g.state.round.baseWin = 300000;
+  g.state.round.currentWin = 150000; // white-box: exercise the boundary on the live record
+  g.state.round.baseWin = 150000;
   assert.equal(g.gambleBlock(), null);
   g.dispatch({ type: 'GAMBLE_OPEN' });
   g.dispatch({ type: 'PICK', colour: 'red' });
   g.test.forceNextGamble('red');
   g.dispatch({ type: 'GAMBLE_FLIP' });
   g.dispatch({ type: 'REVEAL_DONE' });
-  assert.equal(g.state.round.currentWin, 600000);
+  assert.equal(g.state.round.currentWin, 300000);
   assert.equal(g.gambleBlock(), 'cap');
   assert.equal(g.dispatch({ type: 'GAMBLE_FLIP' }).ok, false);
   g.dispatch({ type: 'COLLECT' });
-  assert.equal(g.state.lastWin.value, 600000);
+  assert.equal(g.state.lastWin.value, 300000);
 
   const { g: g2 } = newGame();
   g2.test.setBalance(1000000);
   toOffer(g2, { 200: 1 }, 8);
-  g2.state.round.currentWin = 300001;
+  g2.state.round.currentWin = 150001;
   assert.equal(g2.gambleBlock(), 'cap');
   assert.equal(g2.dispatch({ type: 'GAMBLE_OPEN' }).ok, false);
   assert.equal(g2.dispatch({ type: 'COLLECT' }).ok, true);
-  assert.equal(g2.state.lastWin.value, 300001, 'cap does not truncate');
+  assert.equal(g2.state.lastWin.value, 150001, 'cap does not truncate');
 });
 
-test('E1.5 the 200,000 max win (1,000 on 200x) can be gambled once, then the cap blocks it', () => {
+test('E1.5 a 100,000 win can be gambled once to 200,000, then the cap blocks it', () => {
+  const { g } = newGame();
+  g.test.setBalance(1000000);
+  toOffer(g, { 200: 1 }, 8);
+  g.state.round.currentWin = 100000; // white-box
+  g.state.round.baseWin = 100000;
+  assert.equal(g.gambleBlock(), null);
+  g.dispatch({ type: 'GAMBLE_OPEN' });
+  g.dispatch({ type: 'PICK', colour: 'red' });
+  g.test.forceNextGamble('red');
+  assert.equal(g.dispatch({ type: 'GAMBLE_FLIP' }).ok, true);
+  g.dispatch({ type: 'REVEAL_DONE' });
+  assert.equal(g.state.round.currentWin, 200000);
+  assert.equal(g.gambleBlock(), 'cap');
+  assert.equal(g.dispatch({ type: 'GAMBLE_FLIP' }).ok, false, 'second gamble rejected');
+  g.dispatch({ type: 'COLLECT' });
+  assert.equal(g.state.lastWin.value, 200000);
+});
+
+test('E1.5 the 200,000 max win (1,000 on 200x) is not gambleable: 400,000 would exceed the cap', () => {
   const { g } = newGame();
   g.dispatch({ type: 'SELECT_CHIP', value: 500 });
   bet(g, 200, 2);
@@ -127,16 +146,10 @@ test('E1.5 the 200,000 max win (1,000 on 200x) can be gambled once, then the cap
   assert.equal(g.state.phase, 'DOUBLE_RUN');
   g.dispatch({ type: 'LIGHT2_DONE' });
   assert.equal(g.state.round.currentWin, 200000);
-  assert.equal(g.gambleBlock(), null);
-  g.dispatch({ type: 'GAMBLE_OPEN' });
-  g.dispatch({ type: 'PICK', colour: 'red' });
-  g.test.forceNextGamble('red');
-  g.dispatch({ type: 'GAMBLE_FLIP' });
-  g.dispatch({ type: 'REVEAL_DONE' });
-  assert.equal(g.state.round.currentWin, 400000);
   assert.equal(g.gambleBlock(), 'cap');
-  g.dispatch({ type: 'COLLECT' });
-  assert.equal(g.state.balance, START_CREDITS - 1000 + 400000);
+  assert.equal(g.dispatch({ type: 'GAMBLE_OPEN' }).ok, false);
+  assert.equal(g.dispatch({ type: 'COLLECT' }).ok, true);
+  assert.equal(g.state.balance, START_CREDITS - 1000 + 200000);
 });
 
 test('E1.5 Double Run on the same tier pays 2 × M × bet; two tiers each pay', () => {

@@ -430,7 +430,7 @@ test('reload mid-spin -> Recovery -> same result, no redraw, no double credit', 
   await page.__done();
 });
 
-test('200x jackpot: the flat win state (Jackpot pill, 200.00x), no confetti or celebration overlay; gamble off on wins over 300,000', async () => {
+test('200x jackpot: the flat win state (Jackpot pill, 200.00x), no confetti or celebration overlay; gamble off when the doubled win would exceed 300,000', async () => {
   const page = await fresh({ timeScale: 2 });
   await setup(page, { balance: 1000, bets: { 200: 1 }, history: [] });
   await force(page, 8);
@@ -442,25 +442,36 @@ test('200x jackpot: the flat win state (Jackpot pill, 200.00x), no confetti or c
   await settle(page, 4000); // the rail count-up and audio un-duck end; no confetti or marquee loop keeps running
   assert.equal((await state(page)).phase, 'GAMBLE_OFFER');
   assert.equal(await attr(page, 'btn-gamble', 'aria-disabled'), null, '200 can be doubled');
-  // the 200,000 max win (1,000 on 200x) may be gambled once; at 400,000 the win is over the 300,000 cap
+  // the 200,000 max win (1,000 on 200x) is not gambleable: doubling it (400,000) would exceed the 300,000 cap
   await page.keyboard.press('Enter');
   await waitPhase(page, 'BETTING');
   await settle(page);
   await setup(page, { balance: 10000, bets: { 200: 1000 }, history: [] });
   await playTo(page, 8);
   assert.equal((await state(page)).round.currentWin, 200000);
-  assert.equal(await attr(page, 'btn-gamble', 'aria-disabled'), null, '200,000 is under the cap');
+  assert.equal(await attr(page, 'btn-gamble', 'aria-disabled'), 'true', '400,000 would exceed the cap');
+  assert.match(await text(page, '[data-id="btn-gamble"]'), /Gamble is off when the doubled win would exceed 300,000/);
+  assert.match(await text(page, '#r-centre'), /Collect it\. Gamble is off when the doubled win would exceed 300,000 credits\./);
+  assert.equal((await dispatch(page, { type: 'GAMBLE_OPEN' })).ok, false);
+  // a 100,000 win (500 on 200x) may be gambled once to 200,000; the next doubling would exceed the cap
+  await page.keyboard.press('Enter');
+  await waitPhase(page, 'BETTING');
+  await settle(page);
+  await setup(page, { balance: 10000, bets: { 200: 500 }, history: [] });
+  await playTo(page, 8);
+  assert.equal((await state(page)).round.currentWin, 100000);
+  assert.equal(await attr(page, 'btn-gamble', 'aria-disabled'), null, '200,000 is within the cap');
   await dispatch(page, { type: 'GAMBLE_OPEN' });
   await dispatch(page, { type: 'PICK', colour: 'red' });
   await page.evaluate(() => window.__rl.game.test.forceNextGamble('red'));
   await dispatch(page, { type: 'GAMBLE_FLIP' });
   await page.waitForFunction(() => !window.__rl.game.state.gamble.revealing);
   await settle(page);
-  assert.equal((await state(page)).round.currentWin, 400000);
+  assert.equal((await state(page)).round.currentWin, 200000);
   assert.equal(await attr(page, 'btn-flip', 'aria-disabled'), 'true');
-  assert.match(await text(page, '[data-id="btn-flip"]'), /Gamble is off on wins over 300,000/);
-  assert.match(await text(page, '#r-centre'), /Your win is now 400,000\. Collect it\./);
-  assert.match(await text(page, '#r-centre'), /Gamble is turned off on wins over 300,000 credits\./);
+  assert.match(await text(page, '[data-id="btn-flip"]'), /Gamble is off when the doubled win would exceed 300,000/);
+  assert.match(await text(page, '#r-centre'), /Your win is now 200,000\. Collect it\./);
+  assert.match(await text(page, '#r-centre'), /Gamble is turned off when the doubled win would exceed 300,000 credits\./);
   await page.__done();
 });
 
@@ -721,11 +732,11 @@ test('Help explains the gamble the way the engine plays it (50/50 drawn and save
     'After a win, press Gamble ×2, pick red or white, then press Gamble on your colour.',
     'Red or white is drawn at that moment, a fair 50/50, and saved before the disc flips.',
     'Match: your win doubles. Gamble again or Collect. No match: the win is lost. Nothing else is taken.',
-    `Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off on wins over ${GAMBLE_CAP.toLocaleString('en-US')}.`,
+    `Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off if the doubled win would exceed ${GAMBLE_CAP.toLocaleString('en-US')}.`,
   ].join(' '));
   const all = await textOf(page, '#r-modal');
   assert.doesNotMatch(all, /gamble window/i, 'no "gamble window" (there is none since batch 5)');
-  assert.match(all, /Gamble: fair 50\/50 on red or white, up to 3 times per win\. Off on wins over 300,000\./, 'paytable gamble line');
+  assert.match(all, /Gamble: fair 50\/50 on red or white, up to 3 times per win\. Off if the doubled win would exceed 300,000\./, 'paytable gamble line');
   assert.match(all, /R \/ W ← → Pick red \/ white/, 'keys: the pick, not a window');
   // the copy matches play: the draw is stored when Gamble is pressed, a match doubles, the max stops a 4th
   await page.keyboard.press('Escape');
@@ -1132,7 +1143,7 @@ test('result: gamble flip (gamble-flip.png): navy panel in the centre, one 700 m
   assert.equal(mid.msg, 'Flipping… If red lights, your win doubles.');
   assert.deepEqual(mid.cards, ['Current win 200', 'Red lights 400', 'White lights 0']);
   assert.equal(mid.recap, 'Flip 1: you picked White · White lit · 100 → 200');
-  assert.equal(mid.note, 'Gamble is turned off on wins over 300,000 credits.');
+  assert.equal(mid.note, 'Gamble is turned off when the doubled win would exceed 300,000 credits.');
   assert.deepEqual(mid.sel, [['pick-red', 'true', 'Red Your pick'], ['pick-white', 'false', 'White key W / →']]);
   assert.deepEqual(mid.flipBtn, ['Flipping… Red · 200 → 400 or 0', 'true']);
   assert.deepEqual(mid.collect, ['Collect 200 After the flip · Enter', 'true', 'rgba(0, 0, 0, 0)'], 'Collect locked (outline) during the flip');
