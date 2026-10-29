@@ -31,8 +31,9 @@ export function scriptedRng(values) {
   };
 }
 
-export function bet(g, square, times = 1) {
-  for (let i = 0; i < times; i++) g.dispatch({ type: 'ADD_BET', square });
+/** Place the current chip on a tier spot (5, 10, 20, 50, 100, 200) `times` times. */
+export function bet(g, tier, times = 1) {
+  for (let i = 0; i < times; i++) g.dispatch({ type: 'ADD_BET', tier });
 }
 
 /** r value whose weightedPick lands on square s (first cumulative slot). */

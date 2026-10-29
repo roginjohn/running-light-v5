@@ -5,7 +5,7 @@
 // `rl.v1.balance` stores { v, seq }. On load, whichever of the two has the higher seq is authoritative,
 // so a crash between the two setItem calls can never make balance and round disagree.
 import { MAX_GAMBLES, HISTORY_STORED } from './config.js';
-import { validBets, totalOf, isSquare } from './bets.js';
+import { validBets, totalOf, isSquare, sameBets } from './bets.js';
 import { payout } from './outcome.js';
 
 export const KEYS = Object.freeze({
@@ -93,6 +93,12 @@ export function validHistory(h) {
   );
 }
 
+/** A stored, non-empty tier-keyed bet map with no unknown keys (a round record must match its bets exactly). */
+export function strictBets(b) {
+  const v = validBets(b, { allowEmpty: false });
+  return !!v && sameBets(v, b);
+}
+
 /** Recompute the current win from the base win and the applied gamble results. */
 export function computeCurrentWin(r) {
   let w = r.baseWin;
@@ -104,7 +110,7 @@ export function computeCurrentWin(r) {
 export function validRound(r) {
   if (!r || typeof r !== 'object') return false;
   if (typeof r.roundId !== 'string' || !r.roundId) return false;
-  if (!validBets(r.bets, { allowEmpty: false })) return false;
+  if (!strictBets(r.bets)) return false;
   if (r.totalBet !== totalOf(r.bets)) return false;
   if (!isSquare(r.s1) || typeof r.doubleRun !== 'boolean') return false;
   if (r.doubleRun ? !(isSquare(r.s2) && r.s2 !== r.s1) : r.s2 !== null) return false;

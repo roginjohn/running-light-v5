@@ -1,12 +1,10 @@
-// v5 §6 exact RTP enumeration per tier (dev spec §5.2). Skipped until batch 2.
+// v5 §6 exact RTP enumeration per tier (dev spec §5.2). Unskipped in batch 2.
 // Brute force over every 1-light stop and every ordered Double Run pair i ≠ j, using the engine's own tables.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as C from '../../fixtures/math-c.js';
 
-const SKIP = { skip: 'v5 batch 2' };
-
-test('rtp: exact per-tier payback from the engine tables is in [95.34%, 95.39%]', SKIP, async () => {
+test('rtp: exact per-tier payback from the engine tables is in [95.34%, 95.39%]', async () => {
   const E = await import('../../../src/engine/config.js');
   const [lo, hi] = C.PAYBACK_RANGE_PCT;
   for (const t of C.TIERS) {
@@ -16,7 +14,7 @@ test('rtp: exact per-tier payback from the engine tables is in [95.34%, 95.39%]'
   }
 });
 
-test('rtp: engine payout() agrees with the enumeration for a 1-credit bet on each tier', SKIP, async () => {
+test('rtp: engine payout() agrees with the enumeration for a 1-credit bet on each tier', async () => {
   const E = await import('../../../src/engine/config.js');
   const { payout } = await import('../../../src/engine/outcome.js');
   const W = E.TOTAL_WEIGHT;
@@ -33,7 +31,7 @@ test('rtp: engine payout() agrees with the enumeration for a 1-credit bet on eac
   }
 });
 
-test('rtp: pRoundTier matches the enumerated per-round hit chance', SKIP, async () => {
+test('rtp: pRoundTier matches the enumerated per-round hit chance', async () => {
   const E = await import('../../../src/engine/config.js');
   const W = E.TOTAL_WEIGHT;
   const dr = 1 / E.DOUBLE_RUN_ONE_IN;

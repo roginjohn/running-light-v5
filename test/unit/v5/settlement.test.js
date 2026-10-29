@@ -1,19 +1,17 @@
-// v5 §6 settlement: blank, same tier, two tiers, 200,000 max (dev spec §2.4, §5.5). Skipped until batch 2.
+// v5 §6 settlement: blank, same tier, two tiers, 200,000 max (dev spec §2.4, §5.5). Unskipped in batch 2.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as C from '../../fixtures/math-c.js';
-
-const SKIP = { skip: 'v5 batch 2' };
 const outcome = () => import('../../../src/engine/outcome.js');
 const ALL = { 5: 10, 10: 10, 20: 10, 50: 10, 100: 10, 200: 10 };
 
-test('settlement: a blank square pays 0, on one light and on both', SKIP, async () => {
+test('settlement: a blank square pays 0, on one light and on both', async () => {
   const { payout } = await outcome();
   for (const n of C.BLANK_SQUARES) assert.equal(payout(ALL, n), 0, `square ${n}`);
   assert.equal(payout(ALL, 2, 4), 0);
 });
 
-test('settlement: one light pays M × bet on its tier only', SKIP, async () => {
+test('settlement: one light pays M × bet on its tier only', async () => {
   const { payout } = await outcome();
   for (const t of C.TIERS) for (const n of C.SQUARES_BY_TIER[t]) {
     assert.equal(payout({ [t]: 7 }, n), 7 * t, `${t}x square ${n}`);
@@ -22,20 +20,20 @@ test('settlement: one light pays M × bet on its tier only', SKIP, async () => {
   }
 });
 
-test('settlement: two lights on the same tier pay 2 × M × bet', SKIP, async () => {
+test('settlement: two lights on the same tier pay 2 × M × bet', async () => {
   const { payout } = await outcome();
   assert.equal(payout({ 5: 10 }, 1, 6), 2 * 5 * 10);
   assert.equal(payout({ 100: 3 }, 21, 46), 2 * 100 * 3);
 });
 
-test('settlement: two different tiers each pay; a blank plus a tier pays the tier', SKIP, async () => {
+test('settlement: two different tiers each pay; a blank plus a tier pays the tier', async () => {
   const { payout } = await outcome();
   assert.equal(payout(ALL, 8, 21), 200 * 10 + 100 * 10);
   assert.equal(payout({ 20: 4 }, 2, 13), 20 * 4);
   assert.equal(payout({ 20: 4 }, 13, 2), 20 * 4);
 });
 
-test('settlement: the maximum single-round win is 200,000', SKIP, async () => {
+test('settlement: the maximum single-round win is 200,000', async () => {
   const { payout } = await outcome();
   const max = { 200: 1000 };
   let best = 0;
@@ -48,7 +46,7 @@ test('settlement: the maximum single-round win is 200,000', SKIP, async () => {
   assert.equal(bestAny, C.MAX_WIN);
 });
 
-test('settlement: the result lists each light (square, tier or blank, amount) and the total', SKIP, async () => {
+test('settlement: the result lists each light (square, tier or blank, amount) and the total', async () => {
   const { winParts } = await outcome();
   const r = winParts({ 5: 10, 200: 2 }, 8, 2);
   assert.deepEqual(r.lights, [

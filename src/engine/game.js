@@ -5,7 +5,7 @@ import {
 } from './config.js';
 import { drawRound, payout, gambleDraw, gambleBlockReason } from './outcome.js';
 import {
-  addChip, removeChip, totalOf, cloneBets, sameBets, validBets, rebetBlockReason, isSquare,
+  addChip, removeChip, totalOf, countOf, cloneBets, sameBets, validBets, rebetBlockReason, isTier,
 } from './bets.js';
 import {
   KEYS, createStore, validBalanceRec, validSettings, validHistory, validRound,
@@ -179,8 +179,8 @@ export function createGame(opts) {
       state.chip = a.value;
     },
     ADD_BET(a) {
-      if (!isSquare(a.square)) return 'bad square';
-      const r = addChip(state.bets, a.square, state.chip, state.balance);
+      if (!isTier(a.tier)) return 'bad tier';
+      const r = addChip(state.bets, a.tier, state.chip, state.balance);
       if (r.toast) toast(r.toast, r.toast === TOASTS.credits ? 'error' : 'warn');
       if (r.added === 0) return 'no room';
       pushUndo();
@@ -188,8 +188,8 @@ export function createGame(opts) {
       state.ghosts = false;
     },
     REMOVE_BET(a) {
-      if (!isSquare(a.square)) return 'bad square';
-      const r = removeChip(state.bets, a.square, state.chip);
+      if (!isTier(a.tier)) return 'bad tier';
+      const r = removeChip(state.bets, a.tier, state.chip);
       if (!r.removed) return 'nothing to remove';
       pushUndo();
       state.bets = r.bets;
@@ -461,10 +461,10 @@ export function createGame(opts) {
 
     // last bets
     const lb = store.read(KEYS.lastBets);
-    if (lb.present && (!lb.ok || !validBets(lb.value, { allowEmpty: false }))) {
-      return fail(KEYS.lastBets, 'Saved last bets are corrupt');
-    }
-    state.lastBets = lb.present ? lb.value : null;
+    // unknown (square-keyed v3) keys are dropped; a map with nothing left is ignored, a bad tier amount is corrupt
+    const lbv = lb.present && lb.ok ? validBets(lb.value) : null;
+    if (lb.present && !lbv) return fail(KEYS.lastBets, 'Saved last bets are corrupt');
+    state.lastBets = lbv && countOf(lbv) ? lbv : null;
     state.ghosts = !!state.lastBets;
 
     // round
@@ -480,8 +480,8 @@ export function createGame(opts) {
       balance = bl.value.v;
       seq = bl.value.seq;
     } else if (bl.present) {
-      // spec B6: unreadable balance -> fall back (to the round record's balance if one exists, else 1,000)
-      log(round ? 'balance unreadable: restored from round record' : 'balance unreadable: fell back to 1,000');
+      // spec B6: unreadable balance -> fall back (to the round record's balance if one exists, else START_CREDITS)
+      log(round ? 'balance unreadable: restored from round record' : `balance unreadable: fell back to ${START_CREDITS}`);
       seq = -1;
     }
     if (round && round.seq > seq) {
@@ -544,8 +544,9 @@ export function createGame(opts) {
         forcedGamble = c;
       },
       setBets(b) {
-        if (!validBets(b)) throw new Error('bad bets');
-        state.bets = cloneBets(b);
+        const v = validBets(b);
+        if (!v) throw new Error('bad bets');
+        state.bets = cloneBets(v);
         emit({ type: 'TEST' });
       },
       setHistory(h) {

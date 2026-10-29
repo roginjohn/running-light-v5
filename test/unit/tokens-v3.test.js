@@ -21,9 +21,9 @@ test('v3 colour, font, type, space, radius and border match docs/design-v3/token
   for (const k of ['color', 'font', 'type', 'space', 'radius', 'border', 'shadow', 'paytable', 'rules']) assert.deepEqual(T[k], DOC[k], k);
 });
 
-test('v3 board-arrangement equals the locked layout in config.js (counts 21/19/7/2/1, weight 2,093)', () => {
+test('board-arrangement equals the v5 Math C layout in config.js (counts 12/8/4/3/2/1 + 20 blank, weight 10,476)', () => {
   assert.equal(assertArrangement(T['board-arrangement']), true);
-  assert.deepEqual(T['board-arrangement-check'], { counts: { 24: 21, 96: 19, 480: 7, 960: 2, 1920: 1 }, totalWeight: 2093 });
+  assert.deepEqual(T['board-arrangement-check'], { counts: { 5: 12, 10: 8, 20: 4, 50: 3, 100: 2, 200: 1, blank: 20 }, totalWeight: 10476 });
 });
 
 test('src/styles/tokens.css is generated from the current tokens', () => {

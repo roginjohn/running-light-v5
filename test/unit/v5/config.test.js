@@ -1,13 +1,11 @@
-// v5 §6 config invariants (dev spec §2.1, §5.1). Skipped until batch 2 lands the Math C config.
-// Engine modules are imported inside each test so the skipped file loads against the v3 engine.
+// v5 §6 config invariants (dev spec §2.1, §5.1). Unskipped in batch 2 (Math C config).
+// Engine modules are imported inside each test (kept from batch 1, when the file loaded against the v3 engine).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as C from '../../fixtures/math-c.js';
-
-const SKIP = { skip: 'v5 batch 2' };
 const config = () => import('../../../src/engine/config.js');
 
-test('config: tiers, counts, weights and total weight match MATH-SPEC-C', SKIP, async () => {
+test('config: tiers, counts, weights and total weight match MATH-SPEC-C', async () => {
   const E = await config();
   assert.deepEqual([...E.TIERS], [...C.TIERS]);
   assert.deepEqual({ ...E.COUNT_BY_TIER }, { ...C.COUNT_BY_TIER });
@@ -17,7 +15,7 @@ test('config: tiers, counts, weights and total weight match MATH-SPEC-C', SKIP, 
   assert.equal(E.TOTAL_WEIGHT, C.TOTAL_WEIGHT);
 });
 
-test('config: layout, BLANK_SQUARES, MULT and WEIGHTS match MATH-SPEC-C §3', SKIP, async () => {
+test('config: layout, BLANK_SQUARES, MULT and WEIGHTS match MATH-SPEC-C §3', async () => {
   const E = await config();
   for (const t of C.TIERS) assert.deepEqual([...E.SQUARES_BY_TIER[t]], [...C.SQUARES_BY_TIER[t]], `${t}x`);
   assert.deepEqual([...E.BLANK_SQUARES], [...C.BLANK_SQUARES]);
@@ -27,7 +25,7 @@ test('config: layout, BLANK_SQUARES, MULT and WEIGHTS match MATH-SPEC-C §3', SK
   }
 });
 
-test('config: chips, limits, credits, gamble and Double Run constants', SKIP, async () => {
+test('config: chips, limits, credits, gamble and Double Run constants', async () => {
   const E = await config();
   assert.deepEqual([...E.CHIPS], [...C.CHIPS]);
   assert.equal(E.MAX_PER_TIER, C.MAX_PER_TIER);
@@ -42,7 +40,7 @@ test('config: chips, limits, credits, gamble and Double Run constants', SKIP, as
   assert.equal(E.MIN_BET, C.MIN_BET);
 });
 
-test('config: limit toasts name the v5 limits', SKIP, async () => {
+test('config: limit toasts name the v5 limits', async () => {
   const E = await config();
   assert.equal(E.TOASTS.tier, C.TOASTS.tier);
   assert.equal(E.TOASTS.round, C.TOASTS.round);
@@ -50,7 +48,7 @@ test('config: limit toasts name the v5 limits', SKIP, async () => {
   assert.equal(E.TOASTS.noSave, C.TOASTS.noSave);
 });
 
-test('config: assertConfig passes; pStopTier is count × weight / 10476', SKIP, async () => {
+test('config: assertConfig passes; pStopTier is count × weight / 10476', async () => {
   const E = await config();
   assert.equal(E.assertConfig(), true);
   for (const t of C.TIERS) {
@@ -59,7 +57,7 @@ test('config: assertConfig passes; pStopTier is count × weight / 10476', SKIP, 
   }
 });
 
-test('config: assertArrangement accepts "blank" labels and rejects a wrong layout', SKIP, async () => {
+test('config: assertArrangement accepts "blank" labels and rejects a wrong layout', async () => {
   const E = await config();
   const arr = Array.from({ length: 50 }, (_, i) => (C.MULT[i + 1] ? C.MULT[i + 1] : 'blank'));
   assert.equal(E.assertArrangement(arr), true);
