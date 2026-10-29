@@ -1,0 +1,428 @@
+{
+  "summary": {
+    "generated": "2026-10-29T13:25:03.785Z",
+    "rules": {
+      "minTapTarget": 44,
+      "minFont": 12,
+      "minBodyFont": 14
+    },
+    "pages": 11,
+    "failing": 0,
+    "wording": [],
+    "minTapTargetOverall": 44,
+    "minFontOverall": 12,
+    "minBodyFontOverall": 14,
+    "anyOverflow": false
+  },
+  "results": [
+    {
+      "file": "png/betting-1920x1080.png",
+      "page": "mocks/betting.html",
+      "viewport": "1920x1080",
+      "safeArea": {
+        "t": 0,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 18,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.note \"Simulated play credits only.\""
+      },
+      "tileMin": 74.4,
+      "spotMin": {
+        "w": 341.1,
+        "h": 257.5
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/betting-390x844.png",
+      "page": "mocks/betting.html",
+      "viewport": "390x844",
+      "safeArea": {
+        "t": 47,
+        "r": 0,
+        "b": 34,
+        "l": 0
+      },
+      "tapTargets": 18,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.csub.body \"Win if the light stops on any square of \""
+      },
+      "tileMin": 30.5,
+      "spotMin": {
+        "w": 140.5,
+        "h": 107.1
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/betting-360x640.png",
+      "page": "mocks/betting.html",
+      "viewport": "360x640",
+      "safeArea": {
+        "t": 24,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 18,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": null,
+      "tileMin": 25.2,
+      "spotMin": {
+        "w": 130.8,
+        "h": 87.2
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/paytable-1920x1080.png",
+      "page": "mocks/paytable.html",
+      "viewport": "1920x1080",
+      "safeArea": {
+        "t": 0,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 1,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.ib \"Close paytable\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Tier",
+        "el": "th \"Tier\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.body \"Bet on a tier spot. You win when the lig\""
+      },
+      "tileMin": 74.4,
+      "spotMin": null,
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/paytable-390x844.png",
+      "page": "mocks/paytable.html",
+      "viewport": "390x844",
+      "safeArea": {
+        "t": 47,
+        "r": 0,
+        "b": 34,
+        "l": 0
+      },
+      "tapTargets": 1,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.ib \"Close paytable\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "1 sq · #8",
+        "el": "span.pn \"1 sq · #8\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.body \"Bet on a tier spot. You win when the lig\""
+      },
+      "tileMin": 30.5,
+      "spotMin": null,
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/win-1920x1080.png",
+      "page": "mocks/win.html",
+      "viewport": "1920x1080",
+      "safeArea": {
+        "t": 0,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 17,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.note \"Simulated play credits only.\""
+      },
+      "tileMin": 74.4,
+      "spotMin": {
+        "w": 341.1,
+        "h": 257.5
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/win-390x844.png",
+      "page": "mocks/win.html",
+      "viewport": "390x844",
+      "safeArea": {
+        "t": 47,
+        "r": 0,
+        "b": 34,
+        "l": 0
+      },
+      "tapTargets": 17,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.csub.body \"Stopped on #13 (20x). Bet 25 × 20.\""
+      },
+      "tileMin": 30.5,
+      "spotMin": {
+        "w": 140.5,
+        "h": 113.8
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/double-run-1920x1080.png",
+      "page": "mocks/double-run.html",
+      "viewport": "1920x1080",
+      "safeArea": {
+        "t": 0,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 17,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.note \"Simulated play credits only.\""
+      },
+      "tileMin": 74.4,
+      "spotMin": {
+        "w": 341.1,
+        "h": 257.5
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/double-run-390x844.png",
+      "page": "mocks/double-run.html",
+      "viewport": "390x844",
+      "safeArea": {
+        "t": 47,
+        "r": 0,
+        "b": 34,
+        "l": 0
+      },
+      "tapTargets": 17,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.csub.body \"Light 1 on #6 (5x) pays 500. Light 2 on \""
+      },
+      "tileMin": 30.5,
+      "spotMin": {
+        "w": 140.5,
+        "h": 107.1
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/no-win-1920x1080.png",
+      "page": "mocks/no-win.html",
+      "viewport": "1920x1080",
+      "safeArea": {
+        "t": 0,
+        "r": 0,
+        "b": 0,
+        "l": 0
+      },
+      "tapTargets": 18,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.note \"Simulated play credits only.\""
+      },
+      "tileMin": 74.4,
+      "spotMin": {
+        "w": 341.1,
+        "h": 257.5
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    },
+    {
+      "file": "png/no-win-390x844.png",
+      "page": "mocks/no-win.html",
+      "viewport": "390x844",
+      "safeArea": {
+        "t": 47,
+        "r": 0,
+        "b": 34,
+        "l": 0
+      },
+      "tapTargets": 18,
+      "minTapTarget": {
+        "size": 44,
+        "el": "button.btn.sec.pt \"Paytable and odds\""
+      },
+      "minFont": {
+        "size": 12,
+        "text": "Play credits",
+        "el": "span.k \"Play credits\""
+      },
+      "minBodyFont": {
+        "size": 14,
+        "el": "p.csub.body \"Stopped on #30, a blank. Your bets are k\""
+      },
+      "tileMin": 30.5,
+      "spotMin": {
+        "w": 140.5,
+        "h": 107.1
+      },
+      "overflow": {
+        "pageScrollX": false,
+        "pageScrollY": false,
+        "offscreen": 0,
+        "clipped": 0,
+        "overlap": 0
+      },
+      "violations": []
+    }
+  ]
+}
