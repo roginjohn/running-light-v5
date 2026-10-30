@@ -114,7 +114,7 @@ html[data-sim] body::before { content: ''; position: fixed; inset: 0; z-index: 1
 .spot.has .sb b { color: var(--c-accent-blue-text); }
 .spot.won { background: var(--c-accent-green); border-color: var(--c-accent-green-text); }
 .spot.won :is(.sm, .so, .sq, .sb), .spot.won .sb b { color: var(--c-text-on-green); }
-.spot.lost { opacity: .6; }
+.spot.lost { opacity: .85; border-color: var(--c-accent-blue-text); }
 .spot[aria-disabled="true"] { cursor: default; }
 
 /* ================================================================ dock (phone: bottom) */

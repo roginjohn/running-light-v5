@@ -72,7 +72,7 @@ Other config changes:
 - `payout = Σ over lights L of MULT[L] × bet[MULT[L]]`. A blank square pays 0.
 - If both lights land on the same tier, that tier pays 2 × M × bet. The maximum single-round win is 200,000, because the 200x tier has only one square.
 - The result object lists, for each light, the square, the tier (or blank) and the amount, plus the total. The UI uses it for the "×2" display.
-- Gamble: offered on a win of 300,000 or less, at most 3 gambles, with the existing fair 50/50 logic. Only the cap changes.
+- Gamble: offered on a win of 150,000 or less (a doubled win can't exceed the 300,000 cap), at most 3 gambles, with the existing 50/50 logic. Only the cap changes.
 
 ### 2.5 Storage, balance reset and migration (storage.js)
 - New keys `rl.v5.*` (balance, settings, lastBets, round, history), plus the UI-only `rl.v5.betTotals` ("Last bets" totals, `src/ui/bettotals.js`). Totals start empty: `rl.v3.betTotals` is not read, written or removed. On a load with no list, the totals are seeded from `rl.v5.lastBets` only.
@@ -94,9 +94,9 @@ Other config changes:
 2. **Tier spots** sit in the ring's centre (3×2 on desktop, 2×3 on phones), ordered 200x → 5x. Each spot shows:
    - the multiplier
    - "1 in X" per light (218.3 / 109.1 / 54.56 / 21.83 / 10.91 / 5.46)
-   - the square count (hidden at 700 px tall or less)
+   - the square count (at every size)
    - the bet ("Bet N" or "No bet")
-   States: a bet adds a blue border, a win turns the spot green with "Won N", and a spot that bet and lost fades to 60%.
+   States: a bet adds a blue border, a win turns the spot green with "Won N", and a spot that bet and lost fades to 85% with a lighter blue border (at least 3:1 against the spot fill and the frame).
 3. **Legend:** "Blank square · no win · 20 of 50".
 4. **Tier colours:** every tier gets its own token (`--tier-5` … `--tier-200`) in `design-tokens-v3.json` → tokens.css. Text and border contrast must be at least 4.5:1 (text) and 3:1 (UI). The tier label always names the tier, so colour is never the only cue.
 5. **Chips:** 7 chips. Desktop has a 4+3 grid of 56 px chips. Phones have one row of 44 px chips. 100 = violet `#6d28d9` and 500 = amber `#b45309` become tokens after the contrast check. Keyboard keys 1–7 pick a chip, and the touch-screen shortcut list is hidden (fix from the v3 audit).
@@ -124,7 +124,7 @@ Other config changes:
 2. Exact per-tier payback, from enumerating every 1-light and Double Run outcome, is in [95.34%, 95.39%] for every tier.
 3. A seeded 10M-round simulation gives each tier's payback within ±0.5 pp of 95.4% (±1.0 pp for 100x/200x), and Double Run within 4% ± 0.05.
 4. Bets of up to 1,000 on one tier and 1,000 in a round are accepted, and the 1,001st credit is refused with a toast. The 50/100/500 chips add their full value.
-5. A blank square pays 0. Two lights on the same tier pay 2×. Two different tiers each pay. The gamble is offered only on wins of 300,000 or less.
+5. A blank square pays 0. Two lights on the same tier pay 2×. Two different tiers each pay. The gamble is offered only on wins of 150,000 or less.
 6. A fresh load or an existing v1 save gives a balance of exactly 10,000, the v1 keys are untouched, and the toast is shown once.
 7. The UI matches the mockup PNGs at 1920×1080, 390×844 and 360×640 (visual review by Rogin). The ring can't be tapped to bet.
 8. No console errors, no external requests, no banned wording, and the accessibility checks in §4 pass.
@@ -172,7 +172,7 @@ Other unit tests:
    - config.js, the weighted draw and Double Run
    - per-tier settlement, bets keyed by tier, limits and chips, gamble cap
    - exact RTP plus seeded sim tests, and simulate.js
-   - the engine is complete and then locked; the UI keeps working through a temporary adapter
+   - the engine is complete and then locked
 3. **v5/batch-3-storage-migration:** the `rl.v5` keys, the 10,000 reset, settings carry-over, the one-time toast, and the refill.
 4. **v5/batch-4-board-display:**
    - the display-only ring

@@ -22,7 +22,7 @@ The gamble dialog's Collect button uses the same green Collect style, and all `.
 - **Bet field = TOTAL bet across all squares**, not the chip value (open question 1, first reading). It is an `<output>` (read-only). Chips still set how much one click/tap adds.
 - **1/2** halves every square's bet, rounding down, never below 1. It is disabled when every square is already at 1.
 - **x2** doubles every square, clamped to **10 per square**, then to **min(200, balance)** for the round. When the round or balance cap cuts in, the room left is shared one credit at a time in square order, so the squares stay within 1 of each other (30 squares × 5 → 20 × 7 + 10 × 6 = 200). The engine's toast explains the cap that applied ("Max bet reached – 10 per square", "Round limit reached – 200 per round", "Not enough credits"). x2 is disabled when nothing can grow.
-- The limits come from `engine/config.js` (`MIN_BET`, `MAX_PER_SQUARE`, `MAX_PER_ROUND`) via the pure helper `src/ui/betscale.js`. The engine has no "scale bets" action and is locked, so `app.js` applies the result as the engine's own bet handlers do: one Undo step, ghosts cleared, only while betting is open (`canBet` and the engine's own `canDispatch` check). START still re-validates the total against 200 and the balance inside the engine.
+- The limits come from `engine/config.js` (`MIN_BET`, `MAX_PER_SQUARE`, `MAX_PER_ROUND`). The engine has no "scale bets" action and is locked, so `app.js` applies the result as the engine's own bet handlers do: one Undo step, ghosts cleared, only while betting is open (`canBet` and the engine's own `canDispatch` check). START still re-validates the total against 200 and the balance inside the engine.
 - **Last bets** shows `round.totalBet` for each round, newest first, at most 5 (open question 2, first reading). The engine history stores stops and wins but not the bet, so `src/ui/bettotals.js` records the total at START, keyed by roundId (a restored round is not counted twice). It keeps the list in its own key `rl.v3.betTotals`, with unreadable data ignored. On a first load with no list, it is seeded from the saved last bets. (v5 moved this list to `rl.v5.betTotals`; see `docs/design-v5/v5-development-spec.md` §2.5. Mentions of the v3 key in these notes describe v3.)
 
 ## Fonts
@@ -34,7 +34,6 @@ Removed from the rail: chip-selected glow and lift, Rebet amber glow ring, the b
 ## Changed files
 | File | Change |
 |---|---|
-| `src/ui/betscale.js` | **New.** `halveBets`, `doubleBets` (pure; engine limits; returns `{ bets, changed, limit }`). |
 | `src/ui/bettotals.js` | **New.** `recordTotal`, `loadTotals`, `saveTotals` for "Last bets" (`rl.v3.betTotals`). |
 | `src/ui/view.js` | New rail/dock markup: `betField`, `chipRow` (v3 chips), `mainButtons` (Start / Collect + Gamble ×2), `actionRow`, `lastBets`, `railNote`, plain disclaimer, 2-column dock. Credits line is now "Credits N" at the right of the "Bet amount" row. Modal Collect uses `.btn.collect`. Removed `totalBetField`, `lastWinField`, `betSlip` and the v2 chip import. |
 | `src/ui/app.js` | `scaleBets('half' / 'double')` for `btn-half` / `btn-double` (toast, sound, one undo step, announcement); records each round's total at START and on load (`ui.betTotals`). |

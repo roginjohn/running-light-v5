@@ -23,7 +23,8 @@ minimum text, 14 px body copy, safe-area insets. There is no seasonal theme. All
 
 Payback is 95.4% on every tier spot. In Double Run (1 in 25 rounds) a second light stops on a different square, and
 each light pays on its own. Limits: 1,000 per tier spot and 1,000 per round. Chips are 1, 5, 10, 25, 50, 100 and 500.
-Players start with 10,000 and get a free refill to 10,000. Gamble is off above 300,000.
+Players start with 10,000 and get a free refill to 10,000. Gamble is offered on wins up to 150,000, because a win can
+never be doubled past the 300,000 cap.
 
 ## 2. Layout decisions
 
@@ -34,8 +35,8 @@ Players start with 10,000 and get a free refill to 10,000. Gamble is off above 3
    200x → 5x, rarest first.
 3. **Each spot shows:** the multiplier (mono, the largest text), "1 in X" per light, the square count, and the current
    bet ("Bet 25" or "No bet"). A spot with a bet gets a blue border. After a round, a winning spot turns solid green
-   and shows "Won N", and spots that had a bet but lost fade to 60%. On ≤ 700 px tall phones the square count is
-   hidden to make room; the paytable still shows it.
+   and shows "Won N", and spots that had a bet but lost fade to 85%, with a lighter blue border that keeps 3:1
+   against the spot fill and the frame. The square count shows at every size, including ≤ 700 px tall phones.
 4. **Blank squares are marked as no-win in three ways, not by colour alone:** a darker fill with diagonal hatching,
    a dashed border, and a ⊘ glyph. On desktop the square also reads "No win". A legend under the spots reads
    "Blank square · no win · 20 of 50".
