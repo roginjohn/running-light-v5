@@ -1,0 +1,147 @@
+{
+  "files": [
+    {
+      "file": "assets/index.js",
+      "raw": 91890,
+      "gzip": 33237
+    },
+    {
+      "file": "assets/index.css",
+      "raw": 36471,
+      "gzip": 7798
+    },
+    {
+      "file": "assets/jetbrains-mono-latin-600-normal.woff2",
+      "raw": 21860,
+      "gzip": 21860
+    },
+    {
+      "file": "assets/poppins-latin-600-normal.woff2",
+      "raw": 8000,
+      "gzip": 8000
+    },
+    {
+      "file": "assets/poppins-latin-700-normal.woff2",
+      "raw": 7816,
+      "gzip": 7816
+    },
+    {
+      "file": "fonts/LICENSE-Poppins-OFL.txt",
+      "raw": 6175,
+      "gzip": 2064
+    },
+    {
+      "file": "fonts/LICENSE-JetBrainsMono-OFL.txt",
+      "raw": 4524,
+      "gzip": 1997
+    },
+    {
+      "file": "index.html",
+      "raw": 1865,
+      "gzip": 775
+    }
+  ],
+  "sizes": {
+    "jsRaw": 91890,
+    "jsGzip": 33237,
+    "cssRaw": 36471,
+    "cssGzip": 7798,
+    "htmlRaw": 1865,
+    "htmlGzip": 775,
+    "fonts": 37676,
+    "fontFiles": 3,
+    "totalGzip": 79486
+  },
+  "timing": {
+    "cpu1x": {
+      "firstPaint": 44,
+      "firstContentfulPaint": 60,
+      "domContentLoaded": 22,
+      "load": 22,
+      "ready": 318
+    },
+    "cpu4x": {
+      "firstPaint": 120,
+      "firstContentfulPaint": 120,
+      "domContentLoaded": 82,
+      "load": 88,
+      "ready": 496
+    },
+    "requests": 6,
+    "transferKB": 169.7,
+    "domNodesBetting": 472,
+    "external": []
+  },
+  "checks": [
+    {
+      "name": "JS gzip",
+      "value": 33.24,
+      "budget": 36,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "CSS gzip",
+      "value": 7.8,
+      "budget": 8,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "Fonts",
+      "value": 37.68,
+      "budget": 80,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "Font files",
+      "value": 3,
+      "budget": 3,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "Largest asset (assets/index.js, raw)",
+      "value": 91.89,
+      "budget": 100,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "DOM nodes, betting screen",
+      "value": 472,
+      "budget": 500,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "First contentful paint, 1x CPU (ms)",
+      "value": 60,
+      "budget": 300,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "Ready, 1x CPU (ms)",
+      "value": 318,
+      "budget": 1000,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "Ready, 4x CPU (ms)",
+      "value": 496,
+      "budget": 3000,
+      "pass": true,
+      "soft": false
+    },
+    {
+      "name": "External requests",
+      "value": 0,
+      "budget": 0,
+      "pass": true,
+      "soft": false
+    }
+  ]
+}
