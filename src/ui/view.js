@@ -1,9 +1,10 @@
 // v3 view: pure functions from (engine state, UI state, derived context, layout) to HTML strings per region.
 // No outcome logic here: every number shown comes from the engine state (stored round) or simple display arithmetic.
-import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, pRound, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MAX_PER_TIER, MIN_BET, REFILL_AMOUNT, TOASTS } from '../engine/config.js';
+import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MAX_PER_TIER, MIN_BET, REFILL_AMOUNT, START_CREDITS, TOASTS } from '../engine/config.js';
 import { sameBets } from '../engine/bets.js';
+import { winParts } from '../engine/outcome.js';
 import { icon, chipFace, v3icon, v3mark } from './icons.js';
-import { SPOT_ORDER, lightOdds, betOn, winners, lightClass, bigMult, bigValue, bigResult } from './track.js';
+import { SPOT_ORDER, lightOdds, betOn, winners, lightClass, bigMult, bigValue } from './track.js';
 
 export const fmt = (n) => Number(n).toLocaleString('en-US');
 const px = (v) => `${Math.round(v * 100) / 100}px`;
@@ -14,9 +15,6 @@ const dis = (d) => (d ? ' aria-disabled="true"' : '');
 const cap = (c) => c[0].toUpperCase() + c.slice(1);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
-export const ODDS = Object.fromEntries(TIERS.map((t) => [t, `1 in ${fmt(Math.round(1 / pRound(t)))}`]));
-
-const TOP_TIER = TIERS[TIERS.length - 1];
 const tierCls = (m) => m || 'blank'; // colour class suffix (styles.css .q5 / .k5 …); blank squares get "blank"
 const squareLabel = (n) => (MULT[n] ? `${MULT[n]}x` : '–');
 
@@ -34,7 +32,7 @@ export function modeOf(s, ui) {
   }
 }
 
-export { SPOT_ORDER, winners, lightClass, bigMult, bigValue, bigResult };
+export { SPOT_ORDER, winners, lightClass, bigMult, bigValue };
 
 // ------------------------------------------------------------------ page frame (v3 batch 2)
 /** Frame body, rail fill with its 1 px divider, and the bottom-bar fill. Static per layout (no per-state changes). */
@@ -62,13 +60,15 @@ export function creditsRect(L) {
   return { x: c.x1 + BET_LBL_W, y: c.y, w: c.colW - BET_LBL_W };
 }
 
-/** "Credits 1,000" (with the green +N delta while paying). The markup carries the settled balance; a count-up
- *  writes only the number's text (app.js paintCredits), so a tween frame never rebuilds this region. */
+/** "Credits 1,000" (with the green +N delta while paying, "+N pending" while a win is uncollected). The markup carries
+ *  the settled balance; a count-up writes only the number's text (app.js paintCredits), so a tween frame never rebuilds
+ *  this region. Phones drop the label while a win is pending, to fit a 6-digit win at 360 wide. */
 export function credits(s, ui, L) {
   const r = creditsRect(L);
   const bal = s.balance;
-  const key = L.phone ? 'Play credits' : 'Credits';
-  const delta = ui.delta ? `<span class="delta">+${fmt(ui.delta)}</span>` : '';
+  const pending = ['GAMBLE_OFFER', 'GAMBLE'].includes(s.phase) ? s.round.currentWin : 0;
+  const key = L.phone ? (pending ? '' : 'Play credits') : 'Credits';
+  const delta = ui.delta ? `<span class="delta">+${fmt(ui.delta)}</span>` : pending ? `<span class="delta">+${fmt(pending)} pending</span>` : '';
   return `<div class="credits" role="status" aria-label="Play credits ${fmt(s.balance)}" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(HEAD_H)}"><span class="k">${key}</span><span class="v">${delta}<b data-role="balance">${fmt(bal)}</b></span></div>`;
 }
 
@@ -96,10 +96,6 @@ export function lastWin(s, ui, c) {
     return { label: 'This round', value: w1, note: 'so far · second light running' };
   }
   if (ui.gambleLoss) return { label: 'Last win', value: 0, note: 'gamble lost', lost: true };
-  if (m === 'offer') {
-    const { w1, w2 } = winners(s, ui);
-    return { label: 'Uncollected win', value: r.currentWin, note: w1 && w2 ? '2 squares' : '' };
-  }
   if (m === 'ingamble') return { label: 'In gamble', value: r.currentWin, note: 'not collected' };
   if (m === 'payout') return { label: 'Last win', value: r.currentWin, note: 'collected' };
   const lw = s.lastWin;
@@ -147,10 +143,13 @@ function actionRow(s, c) {
   return `<div class="acts">${one('btn-undo', 'Undo', 'Z', off || !s.undo.length)}${one('btn-clear', 'Clear', 'C', off || !c.total)}</div>`;
 }
 
-const gambleWhyText = (gw) => (gw === 'cap' ? `Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)}` : gw === 'max' ? 'No gambles left for this win' : '');
+// the engine (gambleBlockReason) stops a win that would double past the cap, so the last win it offers is half the cap
+const GAMBLE_MAX_WIN = GAMBLE_CAP / 2;
+const gambleWhyText = (gw) => (gw === 'cap' ? `Off above ${fmt(GAMBLE_MAX_WIN)}` : gw === 'max' ? 'No gambles left for this win' : '');
+const gambleWhyLine = (gw) => (gw === 'cap' ? `Gamble is off above ${fmt(GAMBLE_MAX_WIN)}` : gambleWhyText(gw));
 
-/** Primary button(s): Start (blue); after a win the Collect (green, dark text) + Gamble ×2 (blue) stack; in the
- *  gamble, Gamble on <colour> (blue) + Collect, which is locked (outline) while the disc flips. */
+/** Primary button(s): Start (blue); after a win the Collect (green, dark text) + Gamble (secondary, win mock) stack; in
+ *  the gamble, Gamble on <colour> (blue) + Collect, which is locked (outline) while the disc flips. */
 function mainButtons(s, ui, c, dock) {
   const m = c.mode;
   const r = s.round;
@@ -161,7 +160,7 @@ function mainButtons(s, ui, c, dock) {
     const gwText = gambleWhyText(gw);
     const left = MAX_GAMBLES - r.gambles.length;
     return `<div class="mains">${collect(false)}
-      <button class="btn gam stack hit" data-id="btn-gamble" aria-label="Gamble times 2, 50/50 (G)"${gwText ? ` title="${esc(gwText)}"` : ''}${dis(!!gw)}><span>Gamble ×2</span><span class="sub">${gw ? esc(gwText) : `50/50 · ${left} of ${MAX_GAMBLES} left${dock ? '' : ' · G'}`}</span></button></div>`;
+      <button class="btn sec stack hit" data-id="btn-gamble" aria-label="${gw ? `Gamble: ${esc(gambleWhyLine(gw))}` : 'Gamble times 2, 50/50 (G)'}"${gwText ? ` title="${esc(gambleWhyLine(gw))}"` : ''}${dis(!!gw)}><span>Gamble</span><span class="sub${gw ? ' short' : ''}">${gw ? esc(gwText) : `50/50 · ${left} of ${MAX_GAMBLES} left${dock ? '' : ' · G'}`}</span></button></div>`;
   }
   if (m === 'locked') return st(`<span>${s.phase === 'DOUBLE_RUN' ? 'Double Run…' : 'Running…'}</span><span class="sub">controls locked</span>`);
   if (m === 'ingamble' && ui.gambleLoss) {
@@ -245,21 +244,20 @@ export function tileLook(n, s, ui) {
     const second = r.s2 && n === r.s2 && revealed;
     if (first || second) {
       if (!light) cls.push(n === w1 || n === w2 ? 'win' : 'lit');
-      if (r.doubleRun) {
-        cls.push('mk');
-        dyn = `<span class="mkt">${first ? '1st' : '2nd'}</span>`;
-      }
-    }
+      // the light's number on the square (win and Double Run mocks), on every layout
+      if (r.doubleRun) dyn = `<span class="lbadge">${first ? 1 : 2}</span>`;
+    } else if (revealed && MULT[n] && (MULT[n] === MULT[w1] || MULT[n] === MULT[w2])) cls.push('tw'); // any square of the tier would have paid
   }
   return { cls: cls.join(' '), dyn };
 }
 
 // ------------------------------------------------------------------ centre panel
-const cardOf = (r, n, idx) => {
-  const b = betOn(r.bets, n);
-  const none = MULT[n] ? `No ${MULT[n]}x bet` : 'Blank · no win';
-  return `<div class="card${b ? ' won' : ''}"><b>${idx ? `${idx} · ` : ''}#${n}</b><span class="cm">${squareLabel(n)}</span><span class="cv"><i>${b ? 'Bet × pays' : 'Your bet'}</i><b>${b ? `${b} × ${MULT[n]} = ${fmt(b * MULT[n])}` : none}</b></span></div>`;
-};
+/** "Light 1 on #6 (5x) pays 500. Light 2 on #30, a blank." from the engine's per-light result. */
+const lightsLine = (bets, s1, s2 = null) => winParts(bets, s1, s2).lights.map((l, i) => {
+  const what = l.tier === 'blank' ? ', a blank.' : l.amount ? ` (${l.tier}x) pays ${fmt(l.amount)}.` : ` (${l.tier}x), no bet.`;
+  return `Light ${i + 1} on #${l.square}${what}`;
+}).join(' ');
+const DOUBLE_PILL = 'Double Run · 2 lights';
 const pips = (used) => `<span class="pips" aria-hidden="true">${[0, 1, 2].map((i) => `<i${i < used ? ' class="used"' : ''}></i>`).join('')}</span>`;
 const leftText = (used) => (used >= MAX_GAMBLES ? 'none left' : `${MAX_GAMBLES - used} of ${MAX_GAMBLES} left`);
 
@@ -274,40 +272,36 @@ export function centreModel(s, ui, c) {
     return { ...M, status: ['amber', 'Running'], headline: 'Running…', sub: 'Bets are locked until the light stops.', note: `Credits ${fmt(r.balanceBefore)} − ${fmt(r.totalBet)} bet = <b>${fmt(r.balance)}</b>` };
   }
   if (s.phase === 'DOUBLE_RUN') {
-    return { ...M, status: ['cyan', 'Double Run'], headline: 'Double Run!', sub: `A second light is running. #${r.s1} stays lit, and the second light can’t stop on it.`, cards: [cardOf(r, r.s1, 1)] };
+    return { ...M, status: ['cyan', 'Double Run'], headline: 'Double Run!', sub: `${lightsLine(r.bets, r.s1)} A second light is running and can’t stop on #${r.s1}.` };
   }
   const { w1, w2 } = winners(s, ui);
-  const cards = r ? (r.doubleRun ? [cardOf(r, r.s1, 1), cardOf(r, r.s2, 2)] : [cardOf(r, r.s1)]) : [];
   if (m === 'ingamble') {
     const won = w1 && w2 ? `Double Run · won ${fmt(r.baseWin)}` : `#${w1 || w2} · ${MULT[w1 || w2]}x · won ${fmt(r.baseWin)}`;
     return { ...M, gamble: true, status: ui.gambleLoss ? ['coral', 'Gamble lost'] : ['on', 'Gamble'], won };
   }
   if (m === 'offer') {
-    const status = MULT[w1] === TOP_TIER || MULT[w2] === TOP_TIER ? ['mint', 'Jackpot'] : r.doubleRun ? ['mint', 'Double Run win'] : ['mint', 'Win'];
-    let sub;
-    if (r.doubleRun && w1 && w2) sub = `Two squares won this round. A second light ran and could not stop on #${r.s1}.`;
-    else if (r.doubleRun && w1) sub = `The second light stopped on #${r.s2} (no win there).`;
-    else if (r.doubleRun) sub = `The first light stopped on #${r.s1} (no win there).`;
-    else sub = c.gambleWhy ? `Collect it. Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.` : 'Collect it, or gamble it on a 50/50.';
-    return { ...M, status, headline: `You win ${fmt(r.baseWin)}`, sub, cards, band: true };
+    const headline = `You win ${fmt(r.baseWin)}`;
+    if (r.doubleRun) {
+      // a double hit: both lights on one bet tier, so the pill names the tier and its spot shows the total with ×2
+      const extra = w1 && w2 && MULT[w1] === MULT[w2] ? [`${MULT[w1]}x ×2`] : [];
+      return { ...M, result: true, status: ['mint', DOUBLE_PILL], extra, headline, sub: lightsLine(r.bets, r.s1, r.s2) };
+    }
+    return { ...M, result: true, status: ['mint', `${MULT[r.s1]}x win`], headline, sub: `Stopped on #${r.s1} (${MULT[r.s1]}x). Bet ${fmt(betOn(r.bets, r.s1))} × ${MULT[r.s1]}.` };
   }
   if (m === 'payout') {
-    return { ...M, status: ['mint', 'Paid'], headline: `+${fmt(r.currentWin)} collected`, sub: `Added to your credits: ${fmt(s.balance - r.currentWin)} → ${fmt(s.balance)}`, cards };
+    return { ...M, result: true, status: ['mint', 'Paid'], headline: `+${fmt(r.currentWin)} collected`, sub: `Added to your credits: ${fmt(s.balance - r.currentWin)} → ${fmt(s.balance)}` };
   }
   // BETTING
   if (ui.showLastStop && r) {
-    const sub = r.doubleRun ? `The lights stopped on #${r.s1} and #${r.s2}. Your bets are still on the board.` : `The light stopped on #${r.s1} (${MULT[r.s1] ? `${MULT[r.s1]}x` : 'blank'}). Your bets are still on the board. Press <b>Start</b> to play them again.`;
-    return { ...M, status: ['coral', 'No win'], headline: 'No win this time', sub, cards };
+    const kept = 'Your bets are kept.';
+    if (r.doubleRun) {
+      const bothBlank = !MULT[r.s1] && !MULT[r.s2];
+      return { ...M, result: true, status: ['coral', 'No win'], extra: [DOUBLE_PILL], headline: bothBlank ? 'Blank squares' : 'Neither light pays', sub: `${lightsLine(r.bets, r.s1, r.s2)} ${kept}` };
+    }
+    const m1 = MULT[r.s1];
+    return { ...M, result: true, status: ['coral', 'No win'], headline: m1 ? `No bet on ${m1}x` : 'Blank square', sub: `Stopped on #${r.s1}${m1 ? ` (${m1}x)` : ', a blank'}. ${kept}` };
   }
   return { ...M, status: ['idle', 'Betting open'], headline: 'Pick a tier spot', sub: 'Win if the light stops on any square of that tier.' };
-}
-
-/** Navy "Double or nothing" band under a win (win-gamble-offer.png): the 50/50, both outcomes, gambles left. */
-function gambleBand(s, c) {
-  const r = s.round;
-  const used = r.gambles.length;
-  const what = c.gambleWhy ? gambleWhyText(c.gambleWhy) : `50/50 · Win → ${fmt(r.currentWin * 2)} · Lose → 0`;
-  return `<div class="gband"><b>Double or nothing</b><span>${esc(what)}</span>${pips(used)}<span>${leftText(used)}</span></div>`;
 }
 
 function recapText(r, loss) {
@@ -350,7 +344,7 @@ function gamblePanel(s, ui, c, L) {
   if (loss) msg = `<b class="lost">No match.</b> ${cap(loss.result)} lit. Your pick was ${cap(loss.pick)}, so the ${fmt(w)} gamble is lost.`;
   else if (rev) msg = `<b>Flipping…</b> If ${pick} lights, your win doubles.`;
   else if (ui.matchMsg) msg = `<b class="won">Match!</b> ${cap(ui.matchMsg.colour)} lit. Your win is now ${fmt(r.currentWin)}.${c.gambleWhy ? ' Collect it.' : ' Gamble again or collect.'}`;
-  else if (c.gambleWhy) msg = `${esc(gambleWhyText(c.gambleWhy))}. Collect your win.`;
+  else if (c.gambleWhy) msg = `${esc(gambleWhyLine(c.gambleWhy))}. Collect your win.`;
   else if (!pick) msg = `Pick red or white for flip ${flipNo}. If your colour lights, your win doubles.`;
   else msg = `You picked ${pick}. If ${pick} lights, your win doubles.`;
   const gc = (k, v, cls = '') => `<div class="gc"><span>${k}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b></div>`;
@@ -364,13 +358,14 @@ function gamblePanel(s, ui, c, L) {
     <div class="gdiscs" role="radiogroup" aria-label="Pick a colour">${disc('red')}${mid}${disc('white')}</div>
     <div class="gmsg" data-role="gamble-instr" aria-live="polite">${msg}</div>
     <div class="gcards"${loss ? ' data-role="gamble-loss"' : ''}>${cards}</div>${recap ? `<div class="grec">${recap}</div>` : ''}</div>
-    <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is turned off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.`}</div>`;
+    <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is offered on wins up to ${fmt(GAMBLE_MAX_WIN)}, so a win never passes ${fmt(GAMBLE_CAP)}.`}</div>`;
 }
 
 /** The six tier spots, in the ring's centre (tiers/SPEC.md §2.2–2.3): multiplier, "1 in X" per light, square count
  *  and the bet. Click / Enter adds the chip, right-click / Shift+click / Backspace removes it. A bet adds a blue
- *  border; once the stops are shown a winning spot is green with "Won N" and a spot that bet and lost fades. While a
- *  round runs the spots are a compact strip (multiplier and bet only) beside the running display. */
+ *  border; once the stops are shown a winning spot is green with "Won N" (the total with ×2 when both lights hit it) and
+ *  a spot that bet and lost fades. While a light runs the spots are a compact strip (multiplier and bet only) beside the
+ *  running display; results use the full spots (win, double-run and no-win mocks). */
 function tierSpots(s, ui, c, compact) {
   const r = s.round;
   const off = c.mode !== 'bet' || !c.canBet;
@@ -378,18 +373,19 @@ function tierSpots(s, ui, c, compact) {
   const shown = ['offer', 'payout'].includes(c.mode) || (ui.showLastStop && r && sameBets(s.bets, r.bets));
   return `<div class="spots${compact ? ' compact' : ''}" role="group" aria-label="Tier bet spots">${SPOT_ORDER.map((m) => {
     const bet = (c.mode !== 'bet' && r ? r.bets[m] : s.bets[m]) || 0;
-    const won = [w1, w2].filter((n) => n && MULT[n] === m).length * m * bet;
+    const hits = [w1, w2].filter((n) => n && MULT[n] === m).length;
+    const won = hits * m * bet;
     const cls = `${bet ? ' has' : ''}${won ? ' won' : bet && shown ? ' lost' : ''}`;
     const squares = plural(COUNT_BY_TIER[m], 'square');
-    const said = won ? `won ${won}` : bet ? `your bet ${bet}` : 'no bet';
-    const foot = won ? `Won <b>${fmt(won)}</b>` : bet ? `Bet <b>${fmt(bet)}</b>` : 'No bet';
+    const said = won ? `won ${won}${hits > 1 ? ', both lights' : ''}` : bet ? `your bet ${bet}` : 'no bet';
+    const foot = won ? `Won <b>${fmt(won)}</b>${hits > 1 ? ' ×2' : ''}` : bet ? `Bet <b>${fmt(bet)}</b>` : 'No bet';
     return `<button class="spot hit k${m}${cls}" data-id="tier-${m}" aria-label="${m}x spot, ${lightOdds(m)} per light, ${squares}, ${said}"${dis(off)}><span class="sm">${m}x</span><span class="so">${lightOdds(m)}</span><span class="sq">${squares}</span><span class="sb">${foot}</span></button>`;
   }).join('')}</div>`;
 }
 
-/** Centre: status pills, a flat title and sub line and the six tier spots while betting is open (betting mock); during
- *  a round also the big multiplier, whose text is written by the controller (app.js paintBig), so a light step never
- *  rebuilds this region, plus the result cards and the navy gamble band; or the gamble panel. */
+/** Centre: status pills, a flat title and sub line and the six tier spots while betting is open and for a result (win,
+ *  double-run and no-win mocks); while a light runs the big multiplier and a compact strip, the multiplier's text being
+ *  written by the controller (app.js paintBig), so a light step never rebuilds this region; or the gamble panel. */
 export function centre(s, ui, c, L) {
   const M = centreModel(s, ui, c);
   const I = L.inner;
@@ -399,14 +395,14 @@ export function centre(s, ui, c, L) {
   const dr = `<span class="cp${M.dr ? ' on' : ''}">${M.dr ? 'Double Run on' : `Double Run · 1 in ${DOUBLE_RUN_ONE_IN}`}</span>`;
   const txt = `<div class="ctxt" aria-live="polite"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>`;
   const legend = `<div class="bkey"><i class="sw" aria-hidden="true"></i>Blank square · no win · ${BLANK_COUNT} of 50</div>`;
+  if (M.result) {
+    const extra = (M.extra || []).map((t) => `<span class="cp ${M.status[0]}">${t}</span>`).join('');
+    return box(' open', `<div class="cps">${st}${extra}</div>${txt}${tierSpots(s, ui, c, false)}${legend}`);
+  }
   if (c.mode === 'bet') return box(' open', `<div class="cps">${st}${dr}</div>${txt}${tierSpots(s, ui, c, false)}${legend}`);
-  const B = bigResult(s, ui);
-  const busy = (M.cards && M.cards.length) || M.band;
-  // phones have no room for the spots and the legend beside the result cards
-  const spots = L.phone && busy ? '' : tierSpots(s, ui, c, true);
   return box('', `<div class="cps">${st}${dr}</div>
-    <div class="bigrow"><div class="big${B.win ? ' win' : ''}" aria-hidden="true"><span data-role="big"></span><small>x</small></div>${B.extra ? `<div class="big2" aria-hidden="true">+ ${B.extra}<small>x</small></div>` : ''}</div>
-    ${txt}${spots}${M.cards && M.cards.length ? `<div class="cards">${M.cards.join('')}</div>` : ''}${M.band ? gambleBand(s, c) : ''}${busy && (L.phone || I.h < 560) ? '' : legend}`);
+    <div class="big" aria-hidden="true"><span data-role="big"></span><small>x</small></div>
+    ${txt}${tierSpots(s, ui, c, true)}${L.phone || I.h < 560 ? '' : legend}`);
 }
 
 // ------------------------------------------------------------------ bottom bar (v3 batch 2)
@@ -501,27 +497,25 @@ export function resultsModal(L) {
     ${item('Drawn first.', 'When you press Start, the result is drawn and saved on this device before the light starts. The light only shows that saved result, and reloading shows the same one.')}
     ${item('Weighted squares.', `Squares are not equally likely: weights ${weights} per square for ${TIERS.map((t) => `${t}x`).join(' / ')}, and ${BLANK_WEIGHT} for each of the ${BLANK_COUNT} blank squares, of ${fmt(TOTAL_WEIGHT)}. A blank square pays nothing.`)}
     ${item(`Double Run, 1 in ${DOUBLE_RUN_ONE_IN}.`, 'Drawn in the same step. The second light never stops on the first square.')}
-    ${item('Gamble, 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, and off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`)}
+    ${item('Gamble, 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, on wins up to ${fmt(GAMBLE_MAX_WIN)}, so a win never passes ${fmt(GAMBLE_CAP)}.`)}
     ${item('RTP about 95.4%.', 'The theoretical long-run average return. Any session can be higher or lower.')}
     ${item('Randomness.', 'Your browser’s built-in crypto random number generator, on this device. Nothing is sent anywhere.')}</ul>
     <div class="ifoot"><span>${L.dockMode ? 'Play credits only' : 'Esc closes this window'}</span><span>No real money value</span></div>`);
 }
 
 // ------------------------------------------------------------------ game info: Settings · Paytable · Help
-// settings-paytable-help.png: one "Game info" window with three columns at 1920 wide. Smaller layouts show one
-// section at a time behind a segmented control (the engine's Info tab), with the same content.
+// The paytable mock's window: a 920 px dialog on desktop, a bottom sheet on tablet portrait and phones, one section at
+// a time behind a segmented control (the engine's Info tab).
 const INFO = [['settings', 'Settings'], ['paytable', 'Paytable'], ['help', 'Help']];
 
 export function infoModal(s, ui, L) {
   const tab = s.info;
-  const cols = L.bp === 'desktop-xl';
-  const body = { settings: () => settingsBody(s, ui), paytable: paytableBody, help: helpBody };
-  // the section headings are the tab targets in the 3-column view (arrows / clicks move between them)
-  const sec = ([id, title]) => `<section class="isec" aria-label="${title}">${cols ? `<h3 class="ih hit" data-id="tab-${id}" tabindex="-1">${title}</h3>` : ''}${body[id]()}</section>`;
-  const tabs = cols ? '' : `<div class="itabs" role="tablist">${INFO.map(([id, l]) => `<button class="hit${tab === id ? ' on' : ''}" data-id="tab-${id}" role="tab" aria-selected="${tab === id}">${l}</button>`).join('')}</div>`;
-  const main = cols ? `<div class="icols">${INFO.map(sec).join('')}</div>` : `<div class="ione" role="tabpanel">${sec(INFO.find((x) => x[0] === tab))}</div>`;
-  return dialog(L, { w: 1180, label: 'Game info', cls: ' info' }, `<div class="ihead">${v3mark()}<h2>Running Light · Game info</h2><button class="ibtn hit x" data-id="close" aria-label="Close (Esc)">${icon('x')}</button></div>
-    ${tabs}${main}<div class="ifoot"><span>${L.dockMode ? 'Play credits only' : 'Esc closes this window'}</span><span>Outcome is decided and saved before the light runs</span></div>`);
+  const body = { settings: () => settingsBody(s, ui), paytable: () => paytableBody(L), help: helpBody };
+  const title = INFO.find((x) => x[0] === tab)[1];
+  const tabs = `<div class="itabs" role="tablist">${INFO.map(([id, l]) => `<button class="hit${tab === id ? ' on' : ''}" data-id="tab-${id}" role="tab" aria-selected="${tab === id}">${l}</button>`).join('')}</div>`;
+  const foot = L.dockMode ? '<span>Play credits only</span><span>No real money value</span>' : '<span>Esc closes this window</span><span>Outcome is decided and saved before the light runs</span>';
+  return dialog(L, { w: 920, label: title, cls: ' info' }, `<div class="ihead"><h2>${title}</h2><button class="ibtn hit x" data-id="close" aria-label="Close (Esc)">${icon('x')}</button></div>
+    ${tabs}<div class="ione" role="tabpanel"><section class="isec" aria-label="${title}">${body[tab]()}</section></div><div class="ifoot">${foot}</div>`);
 }
 
 function settingsBody(s, ui) {
@@ -541,29 +535,50 @@ function settingsBody(s, ui) {
   return h;
 }
 
-const PAY_PILL = (t) => `<span class="ppill k${t}">${t}x</span>`;
-function paytableBody() {
-  let h = '<table class="ptab"><tr><th>Pays</th><th>Squares</th><th>Hit chance per round</th><th>Square numbers</th></tr>';
-  for (const t of [...TIERS].reverse()) h += `<tr><td>${PAY_PILL(t)}</td><td>${COUNT_BY_TIER[t]}</td><td>${ODDS[t]}</td><td>${SQUARES_BY_TIER[t].join(', ')}</td></tr>`;
-  h += '</table><div class="pnotes">';
-  h += `<p><b>You bet on a tier.</b> Each light that stops on a square of that tier pays: a bet of 5 on 10x returns 50 (stake included). The ${BLANK_COUNT} blank squares pay nothing.</p>`;
-  h += `<p><b>Double Run · 1 in ${DOUBLE_RUN_ONE_IN} rounds:</b> a second light runs and can’t stop on the first square. Both stops pay.</p>`;
-  h += `<p><b>Gamble:</b> 50/50 on red or white, up to ${MAX_GAMBLES} times per win. Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</p>`;
-  h += `<p><b>Limits:</b> ${MIN_BET}–${fmt(MAX_PER_TIER)} per tier, ${fmt(MAX_PER_ROUND)} per round. Chips ${CHIPS.join(', ')}.</p>`;
-  h += '<p><b>RTP ≈95.4%:</b> the theoretical long-run average return, not a promise for any session.</p></div>';
-  return h;
+const stopShare = (w) => `${((100 * w) / TOTAL_WEIGHT).toFixed(2)}%`;
+const tierShare = (t) => stopShare(COUNT_BY_TIER[t] * WEIGHT_BY_TIER[t]);
+const BLANK_SHARE = stopShare(BLANK_COUNT * BLANK_WEIGHT);
+const BLANK_SW = '<i class="sw" aria-hidden="true"></i>';
+
+/** Paytable mock: a full table in a dialog, one card per tier on phones. One payback figure (dev spec §3.8). */
+function payTable() {
+  const rows = SPOT_ORDER.map((t) => `<tr${t >= 100 ? ' class="pnavy"' : ''}><th scope="row"><span class="pm k${t}">${t}x</span></th><td>${COUNT_BY_TIER[t]}</td><td class="nums">${SQUARES_BY_TIER[t].join(', ')}</td><td><b>${lightOdds(t)}</b></td><td>${tierShare(t)}</td></tr>`).join('');
+  return `<table class="ptab" data-role="paytable"><thead><tr><th scope="col">Tier</th><th scope="col">Squares</th><th scope="col">Square numbers</th><th scope="col">Chance per light</th><th scope="col">Share of stops</th></tr></thead>
+    <tbody>${rows}<tr class="pblank"><th scope="row"><span class="pm">${BLANK_SW}Blank</span></th><td>${BLANK_COUNT}</td><td class="nums">No win</td><td>—</td><td>${BLANK_SHARE}</td></tr></tbody>
+    <tfoot><tr><th scope="row">Total</th><td>50</td><td></td><td></td><td>100%</td></tr></tfoot></table>`;
+}
+function payCards() {
+  const cards = SPOT_ORDER.map((t) => `<li class="pcard${t >= 100 ? ' pnavy' : ''}"><span class="pm k${t}">${t}x</span><span class="po"><b>${lightOdds(t)}</b><span>${tierShare(t)} of stops</span></span><span class="pn">${COUNT_BY_TIER[t]} sq · #${SQUARES_BY_TIER[t].join(', #')}</span></li>`).join('');
+  return `<ul class="pcards" data-role="paytable">${cards}<li class="pcard pblank"><span class="pm">${BLANK_SW}Blank</span><span class="po"><b>No win</b><span>${BLANK_SHARE} of stops</span></span><span class="pn">${BLANK_COUNT} squares</span></li>
+    <li class="pcard ptot"><span class="pm">Total</span><span class="po"><b>50 squares</b><span>100% of stops</span></span></li></ul>`;
+}
+function paytableBody(L) {
+  const tierSquares = TIERS.reduce((a, t) => a + COUNT_BY_TIER[t], 0);
+  const likely = Math.round(BLANK_WEIGHT / WEIGHT_BY_TIER[TIERS[TIERS.length - 1]]);
+  return `<div class="pbody"><p>Bet on a tier spot. You win when a light stops on <b>any</b> square of that tier. The win is the multiplier × your bet on that spot: a bet of 5 on 10x pays 50.</p>
+    <div class="kpis"><div><span>Payback, every tier spot</span><b>95.4%</b></div><div><span>Squares</span><b>${tierSquares} tier + ${BLANK_COUNT} blank = 50</b></div></div>
+    ${L.phone ? payCards() : payTable()}
+    <p>Squares are not equally likely: one blank square is about ${likely} times as likely as the 200x square. The chances above already include this. Payback is the theoretical long-run average, not a promise for any session.</p>
+    <h4 class="isub">Double Run</h4>
+    <p>In Double Run (1 in ${DOUBLE_RUN_ONE_IN} rounds) a second light can pay too, so a round hits slightly more often. It stops on a different square and each light pays on its own, so both lights on your tier pay twice (shown as ×2).</p>
+    <h4 class="isub">Limits</h4>
+    <ul class="plims"><li>${MIN_BET} to ${fmt(MAX_PER_TIER)} on each tier spot, up to ${fmt(MAX_PER_ROUND)} per round</li><li>Chips ${CHIPS.join(', ')}</li><li>Start with ${fmt(START_CREDITS)} play credits; free refill to ${fmt(REFILL_AMOUNT)}</li><li>Gamble on wins up to ${fmt(GAMBLE_MAX_WIN)}, ${MAX_GAMBLES} times per win, ${fmt(GAMBLE_CAP)} cap</li><li>Simulated credits only, no real money</li></ul></div>`;
 }
 
-/** Help: the four steps, how the gamble really works (engine rules: 50/50 drawn and saved when Gamble is
- *  pressed, ×2 or lose the win, max 3 per win, off if the doubled win would exceed the 300,000 cap), and the play-credits note. */
+/** Help: the steps, what a multiplier and a blank mean, how the gamble really works (engine rules: 50/50 drawn and saved
+ *  when Gamble is pressed, ×2 or lose the win, max 3 per win, wins up to half the 300,000 cap), and the play-credits note. */
 function helpBody() {
-  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Tap a tier spot in the centre to bet on it, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
+  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Tap a tier spot in the centre to bet on it, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
   let h = `<ol class="isteps">${steps.map(([a, b], i) => `<li><span class="n">${i + 1}</span><span><b>${a}</b><br>${b}</span></li>`).join('')}</ol>`;
+  h += `<h4 class="isub">Multipliers and blanks</h4><ul class="igamble" data-role="help-tiers">
+    <li>Each spot is a multiplier. It pays when a light stops on any square of that tier: a bet of 5 on 10x pays 50.</li>
+    <li>The ${BLANK_COUNT} blank squares are hatched and pay nothing. Squares are not equally likely; the Paytable shows the chance of each tier.</li>
+    <li>In Double Run (1 in ${DOUBLE_RUN_ONE_IN} rounds) a second light stops on a different square, and each light pays on its own.</li></ul>`;
   h += `<h4 class="isub">How the gamble works</h4><ul class="igamble" data-role="help-gamble">
-    <li>After a win, press <b>Gamble ×2</b>, pick <b>red</b> or <b>white</b>, then press Gamble on your colour.</li>
+    <li>After a win, press <b>Gamble</b>, pick <b>red</b> or <b>white</b>, then press Gamble on your colour.</li>
     <li>Red or white is drawn at that moment, a 50/50, and saved before the disc flips.</li>
     <li><b>Match:</b> your win doubles. Gamble again or Collect. <b>No match:</b> the win is lost. Nothing else is taken.</li>
-    <li>Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</li></ul>`;
+    <li>Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is offered on wins up to ${fmt(GAMBLE_MAX_WIN)}, so a win never passes ${fmt(GAMBLE_CAP)}.</li></ul>`;
   h += `<p class="inavy"><b>Play credits only.</b> No real money value. Credits can’t be bought, sold or cashed out. Free refill to ${fmt(REFILL_AMOUNT)} whenever you run out.</p>`;
   return h;
 }
