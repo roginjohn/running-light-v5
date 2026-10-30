@@ -897,6 +897,38 @@ test('last bets (top row, right of "Last results"): each round shows its TOTAL b
   await page.__done();
 });
 
+// valid for the old reader, with spacing and key order JSON.stringify would not produce, so a rewrite would show
+const OLD_TOTALS = { 'rl.v3.betTotals': '[ {"t":777, "id":"old-1"},\n  {"t":40, "id":null} ]' };
+const lastBetsShown = (page) => page.evaluate(() => [...document.querySelectorAll('#r-top [data-role="last-bets"] .lb')].map((e) => e.textContent));
+const stored = (page) => page.evaluate(() => ({ ...localStorage }));
+
+test('last bets: a saved rl.v3.betTotals is ignored and untouched; new totals go to rl.v5.betTotals', async () => {
+  const old = { ...OLD_TOTALS, 'rl.v1.balance': JSON.stringify({ v: 500, seq: 2 }), 'rl.v1.lastBets': JSON.stringify({ 8: 10 }) };
+  const page = await fresh({ presetStorage: old });
+  assert.match(await text(page, '#r-top [data-role="last-bets"]'), /Last bets:\s*None yet/);
+  assert.deepEqual(await page.evaluate(() => window.__rl.app.ui.betTotals), []);
+  assert.equal((await stored(page))['rl.v5.betTotals'], undefined, 'no old total copied or seeded');
+  await setup(page, { balance: 1000, bets: { 20: 5, 50: 1 }, chip: 1, history: [] });
+  await playTo(page, 27, null, 'BETTING');
+  assert.deepEqual(await lastBetsShown(page), ['6']);
+  assert.deepEqual(JSON.parse((await stored(page))['rl.v5.betTotals']).map((e) => e.t), [6]);
+  // after a reload: still only the new total, and the old keys are still byte-for-byte the same
+  await openGame(browser, url, { seed: 11, keepStorage: true }, page);
+  assert.deepEqual(await lastBetsShown(page), ['6']);
+  const after = await stored(page);
+  for (const [k, v] of Object.entries(old)) assert.equal(after[k], v, `${k} untouched`);
+  await page.__done();
+});
+
+test('last bets: the first-load seed uses the saved rl.v5.lastBets, never rl.v3.betTotals', async () => {
+  const page = await fresh({ presetStorage: { ...OLD_TOTALS, 'rl.v5.lastBets': JSON.stringify({ 20: 5 }) } });
+  assert.deepEqual(await lastBetsShown(page), ['5']);
+  const after = await stored(page);
+  assert.deepEqual(JSON.parse(after['rl.v5.betTotals']), [{ id: null, t: 5 }]);
+  assert.equal(after['rl.v3.betTotals'], OLD_TOTALS['rl.v3.betTotals']);
+  await page.__done();
+});
+
 test('rail look (1920): flat token colours, blue Start, green Collect with dark text, blue Gamble; token sizes; no shadows', async () => {
   const page = await fresh();
   await setup(page, { balance: 1000, bets: { 20: 5 }, chip: 5, history: [] });
