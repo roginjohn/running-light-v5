@@ -87,10 +87,10 @@ test('win / loss stops are flat token fills (component sheet): green with dark t
 test('result centre: light big number, green pays pill, navy band and panel, flat discs; the flip turns by transform only', () => {
   const find = (sel) => rules.find((r) => r.sel === sel)?.body || assert.fail(`rule ${sel}`);
   assert.match(find('.big.win'), /color: var\(--c-big-number-win\)/);
-  assert.match(find('.pay.on b'), /background: var\(--c-accent-green\); color: var\(--c-text-on-green\)/);
+  assert.match(find('.spot.won'), /background: var\(--c-accent-green\);.*color: var\(--c-text-on-green\)/);
   assert.match(find('.gband, .gpanel'), /background: var\(--c-bg-panel-navy\); border: 1px solid var\(--c-border-panel-navy\)/);
   assert.match(find('.disc, .coin .f'), /background: var\(--c-gamble-red\); border: 4px solid var\(--c-gamble-red-edge\)/);
-  for (const { sel, body } of rules.filter((r) => /\.(gband|gpanel|ghead|gdiscs|pick|disc|coin|flip|gc|gmsg|card|cards|pay|big)\b/.test(r.sel))) {
+  for (const { sel, body } of rules.filter((r) => /\.(gband|gpanel|ghead|gdiscs|pick|disc|coin|flip|gc|gmsg|card|cards|spot|spots|big)\b/.test(r.sel))) {
     assert.doesNotMatch(body, /box-shadow|filter|gradient|text-shadow/, sel);
   }
   // one disc with two faces, 700 ms rotateY ending on the stored face; will-change only while it flips

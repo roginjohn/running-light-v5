@@ -1,8 +1,7 @@
 // v2 UI tests (puppeteer-core + installed Google Chrome): interaction, state copy, locks, layout at
 // 1920x1080 / 1280x720 / 1024x768 / 768x1024 (touch), WIN-tag geometry, recovery, console and network checks.
 // Run: npm run test:ui (builds first)
-// v5 batch 4: the ring is display-only; bets go on the TEMPORARY tier buttons in the centre (tier-5 … tier-200,
-// replaced by the tier spots in batch 5).
+// v5: the ring is display-only (batch 4); bets go on the six tier spots in the centre (data-id tier-5 … tier-200, batch 5).
 // Squares used: #1/#6 5x, #5/#15/#24/#27/#40 10x, #13/#17/#33 20x, #3/#29 50x, #21/#46 100x, #8 200x, #2/#12/#30 blank.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,12 +29,11 @@ const bets = async (page) => (await state(page)).bets;
 const text = (page, sel) => page.evaluate((s) => (document.querySelector(s) || {}).textContent || '', sel);
 const toastText = (page) => text(page, '#r-toast');
 const attr = (page, id, a) => page.evaluate((i, x) => document.querySelector(`[data-id="${i}"]`)?.getAttribute(x) ?? null, id, a);
-const ghostCount = (page) => page.evaluate(() => document.querySelectorAll('.pay.ghost').length);
 
 const SIZES = [[1920, 1080, 'desktop-xl'], [1280, 720, 'desktop'], [1024, 768, 'tablet-landscape'], [768, 1024, 'tablet-portrait']];
 
 // ------------------------------------------------------------------ betting
-test('bets by mouse: click on a tier button adds, right-click and Shift+click remove (floor 0); the bet shows on the button', async () => {
+test('bets by mouse: click on a tier spot adds, right-click and Shift+click remove (floor 0); the bet shows on the spot', async () => {
   const page = await fresh();
   await clickId(page, 'chip-5');
   await clickId(page, 'tier-20');
@@ -43,15 +41,118 @@ test('bets by mouse: click on a tier button adds, right-click and Shift+click re
   assert.deepEqual(await bets(page), { 20: 10 });
   await clickId(page, 'tier-20', { button: 'right' });
   assert.deepEqual(await bets(page), { 20: 5 });
-  assert.equal(await attr(page, 'tier-20', 'aria-label'), '20x tier, 4 squares, bet 5');
-  assert.equal(await text(page, '[data-id="tier-20"] i'), 'Bet 5');
+  assert.equal(await attr(page, 'tier-20', 'aria-label'), '20x spot, 1 in 21.83 per light, 4 squares, your bet 5');
+  assert.equal(await text(page, '[data-id="tier-20"] .sb'), 'Bet 5');
   await page.keyboard.down('Shift');
   await clickId(page, 'tier-20');
   await page.keyboard.up('Shift');
   assert.deepEqual(await bets(page), {});
   await clickId(page, 'tier-20', { button: 'right' });
   assert.deepEqual(await bets(page), {});
-  assert.equal(await text(page, '[data-id="tier-20"] i'), '4 squares');
+  assert.equal(await text(page, '[data-id="tier-20"] .sb'), 'No bet');
+  await page.__done();
+});
+
+test('tier spots (betting mock): six buttons, 200x to 5x, each with multiplier, 1 in X, squares and bet; blue border on a bet; the old pays row is gone', async () => {
+  const page = await fresh();
+  await setup(page, { balance: 10000, bets: { 100: 5, 5: 100 }, chip: 25, history: [] });
+  const g = await page.evaluate(() => ({
+    spots: [...document.querySelectorAll('#r-centre .spot')].map((e) => [e.tagName, e.dataset.id, ...['.sm', '.so', '.sq', '.sb'].map((s) => e.querySelector(s).textContent)]),
+    border: [getComputedStyle(document.querySelector('[data-id="tier-100"]')).borderTopColor, getComputedStyle(document.querySelector('[data-id="tier-200"]')).borderTopColor],
+    cols: new Set([...document.querySelectorAll('.spot')].map((e) => Math.round(e.getBoundingClientRect().left))).size,
+    old: document.querySelectorAll('.pays, .pay, .betin').length, big: document.querySelectorAll('#r-centre .big').length,
+    headline: document.querySelector('[data-role="headline"]').textContent, inRing: document.querySelector('#r-centre .centre .spots') !== null,
+  }));
+  assert.deepEqual(g.spots, [
+    ['BUTTON', 'tier-200', '200x', '1 in 218.3', '1 square', 'No bet'],
+    ['BUTTON', 'tier-100', '100x', '1 in 109.1', '2 squares', 'Bet 5'],
+    ['BUTTON', 'tier-50', '50x', '1 in 54.56', '3 squares', 'No bet'],
+    ['BUTTON', 'tier-20', '20x', '1 in 21.83', '4 squares', 'No bet'],
+    ['BUTTON', 'tier-10', '10x', '1 in 10.91', '8 squares', 'No bet'],
+    ['BUTTON', 'tier-5', '5x', '1 in 5.46', '12 squares', 'Bet 100'],
+  ]);
+  assert.equal(g.border[0], 'rgb(13, 110, 253)', 'a bet adds the accent-blue border');
+  assert.notEqual(g.border[1], g.border[0], 'no border change without a bet');
+  assert.equal(g.cols, 3, '3 x 2 on desktop');
+  assert.deepEqual([g.old, g.big, g.headline, g.inRing], [0, 0, 'Pick a tier spot', true]);
+  await page.__done();
+});
+
+test('controls: all seven chips add their full value; total "N / 1,000", Undo, Clear, Start "N on K spots"; no Rebet, 1/2 or x2', async () => {
+  const page = await fresh();
+  const none = await page.evaluate(() => document.querySelectorAll('[data-id="btn-rebet"], [data-id="btn-half"], [data-id="btn-double"]').length);
+  assert.equal(none, 0);
+  assert.doesNotMatch(await text(page, '#r-controls'), /Rebet/);
+  for (const v of [1, 5, 10, 25, 50, 100, 500]) {
+    await clickId(page, `chip-${v}`);
+    await clickId(page, 'tier-50');
+    assert.equal((await bets(page))[50], [1, 6, 16, 41, 91, 191, 691][[1, 5, 10, 25, 50, 100, 500].indexOf(v)], `chip ${v}`);
+  }
+  assert.equal(await text(page, '[data-role="total"]'), '691 / 1,000');
+  assert.equal(await text(page, '[data-role="bet-hint"]'), 'Max 1,000 per spot');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start691 on 1 spot$/);
+  await clickId(page, 'chip-5');
+  await clickId(page, 'tier-200');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start696 on 2 spots$/);
+  await clickId(page, 'btn-undo');
+  assert.deepEqual(await bets(page), { 50: 691 });
+  await clickId(page, 'btn-clear');
+  assert.deepEqual(await bets(page), {});
+  assert.equal(await attr(page, 'btn-start', 'aria-disabled'), 'true', 'no bet: Start off');
+  await clickId(page, 'btn-undo');
+  assert.deepEqual(await bets(page), { 50: 691 }, 'Undo brings back a Clear');
+  await page.__done();
+});
+
+test('bets persist between rounds (win, gamble loss, no win, reload): "Start again" replays them; R does nothing', async () => {
+  const page = await fresh();
+  await setup(page, { balance: 1000, bets: { 20: 5, 50: 1 }, chip: 5, history: [] });
+  await playTo(page, 13); // a win, collected
+  await page.keyboard.press('Enter');
+  await waitPhase(page, 'BETTING');
+  await settle(page);
+  assert.deepEqual(await bets(page), { 20: 5, 50: 1 }, 'kept after Collect');
+  assert.equal((await state(page)).ghosts, false);
+  assert.equal(await attr(page, 'btn-undo', 'aria-disabled'), 'true', 'no undo step');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.id), 'btn-start', 'focus on Start');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start again6 on 2 spots$/);
+  await page.keyboard.press('r');
+  assert.equal(await text(page, '#r-toast'), '', 'no "restored" toast');
+  await clickId(page, 'tier-10');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start/);
+  assert.doesNotMatch(await text(page, '[data-id="btn-start"]'), /again/, 'changed bets: plain Start');
+  await clickId(page, 'btn-undo');
+  await playTo(page, 13); // a win lost in the gamble
+  await dispatch(page, { type: 'GAMBLE_OPEN' });
+  await dispatch(page, { type: 'PICK', colour: 'red' });
+  await page.evaluate(() => window.__rl.game.test.forceNextGamble('white'));
+  await dispatch(page, { type: 'GAMBLE_FLIP' });
+  await waitPhase(page, 'BETTING', 15000);
+  await settle(page);
+  assert.deepEqual(await bets(page), { 20: 5, 50: 1 }, 'kept after a lost gamble');
+  await playTo(page, 2, null, 'BETTING'); // no win
+  assert.deepEqual(await bets(page), { 20: 5, 50: 1 }, 'kept after no win');
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.spot.lost')].map((e) => e.dataset.id)), ['tier-50', 'tier-20'], 'spots that bet and lost fade');
+  await clickId(page, 'tier-20');
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.spot.lost').length), 0, 'the fade ends when the bets change');
+  await clickId(page, 'btn-undo');
+  await openGame(browser, url, { seed: 11, keepStorage: true }, page);
+  assert.deepEqual(await bets(page), { 20: 5, 50: 1 }, 'kept after a reload');
+  await playTo(page, 13);
+  assert.deepEqual((await state(page)).round.bets, { 20: 5, 50: 1 }, 'the kept bets are what START plays');
+  await page.__done();
+});
+
+test('touch screens hide the shortcut list (media rule); it stays on a mouse and keyboard screen', async () => {
+  const page = await fresh({ width: 1280, height: 720 });
+  await dispatch(page, { type: 'OPEN_INFO', tab: 'settings' });
+  const shown = () => page.evaluate(() => getComputedStyle(document.querySelector('.keylist')).display);
+  assert.equal(await shown(), 'block');
+  assert.match(await text(page, '.keylist'), /1–7Chip/);
+  assert.doesNotMatch(await text(page, '.keylist'), /Rebet/);
+  // headless Chrome cannot emulate hover: none, so check the rule the page really loaded
+  const rule = await page.evaluate(() => [...document.styleSheets].flatMap((s) => [...s.cssRules]).filter((r) => r.type === CSSRule.MEDIA_RULE && r.conditionText === '(hover: none) and (pointer: coarse)').flatMap((r) => [...r.cssRules]).map((r) => [r.selectorText, r.style.display]));
+  assert.deepEqual(rule, [['.keylist, .gk', 'none']]);
   await page.__done();
 });
 
@@ -79,7 +180,7 @@ test('display-only ring: clicks, right-clicks and taps on squares place no bet; 
   await page.__done();
 });
 
-test('blank squares (mockups): hatching, dashed border, no-win glyph and "No win" on desktop; legend under the buttons', async () => {
+test('blank squares (mockups): hatching, dashed border, no-win glyph and "No win" on desktop; legend under the spots', async () => {
   const page = await fresh();
   const b = await page.evaluate(() => {
     const t = document.querySelector('[data-id="sq-2"]');
@@ -109,27 +210,29 @@ test('tier and chip colours come from the tokens: six distinct label colours, vi
   await page.__done();
 });
 
-test('bets by keyboard: 1-5 chips, Enter add, Backspace remove, arrows move between the tier buttons, Z/C', async () => {
+test('bets by keyboard: 1-7 chips, Enter add, Backspace remove, arrows move between the tier spots, Z/C', async () => {
   const page = await fresh();
   await page.evaluate(() => window.__rl.app.focusId('tier-10'));
-  await page.keyboard.press('3');
-  assert.equal((await state(page)).chip, 10);
+  for (const [k, v] of [['3', 10], ['6', 100], ['7', 500]]) {
+    await page.keyboard.press(k);
+    assert.equal((await state(page)).chip, v);
+  }
   await page.keyboard.press('1');
   await page.keyboard.press('Enter');
-  await page.keyboard.press('ArrowRight'); // 10x -> 20x
+  await page.keyboard.press('ArrowRight'); // 10x -> 5x (rarest first)
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
-  assert.deepEqual(await bets(page), { 10: 1, 20: 2 });
+  assert.deepEqual(await bets(page), { 10: 1, 5: 2 });
   await page.keyboard.press('Backspace');
-  assert.deepEqual(await bets(page), { 10: 1, 20: 1 });
+  assert.deepEqual(await bets(page), { 10: 1, 5: 1 });
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Enter');
-  assert.deepEqual(await bets(page), { 10: 2, 20: 1 });
+  assert.deepEqual(await bets(page), { 10: 2, 5: 1 });
   await page.keyboard.press('z');
-  assert.deepEqual(await bets(page), { 10: 1, 20: 1 });
+  assert.deepEqual(await bets(page), { 10: 1, 5: 1 });
   await page.keyboard.press('c');
   assert.deepEqual(await bets(page), {});
-  assert.match(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), /^10x tier/);
+  assert.match(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), /^10x spot/);
   assert.ok(await page.evaluate(() => document.getElementById('app').classList.contains('kbd')), 'keyboard focus ring shown');
   await page.__done();
 });
@@ -154,6 +257,64 @@ test('limit toasts: 1,000 per tier, 1,000 per round, not enough credits (also an
   await page.__done();
 });
 
+test('Start over the balance: off with a visible "Not enough credits" hint; no round by click or Enter; removing bets turns it back on', async () => {
+  const page = await fresh();
+  await setup(page, { balance: 100, bets: { 5: 150 }, chip: 50, history: [] });
+  const hint = () => text(page, '[data-id="btn-start"] [data-role="start-hint"]');
+  assert.equal(await attr(page, 'btn-start', 'aria-disabled'), 'true');
+  assert.equal(await hint(), 'Not enough credits');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start · 150/);
+  assert.equal(await attr(page, 'btn-clear', 'aria-disabled'), null, 'bets can still be cleared');
+  await clickId(page, 'btn-start');
+  assert.deepEqual([(await state(page)).phase, (await state(page)).balance], ['BETTING', 100], 'click: no round');
+  await page.keyboard.press('Enter');
+  assert.deepEqual([(await state(page)).phase, (await state(page)).balance], ['BETTING', 100], 'Enter: no round');
+  await clickId(page, 'tier-5', { button: 'right' });
+  assert.deepEqual(await bets(page), { 5: 100 });
+  assert.equal(await attr(page, 'btn-start', 'aria-disabled'), null, 'exactly the balance: on');
+  assert.equal(await hint(), '');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start100 on 1 spot$/);
+  await page.__done();
+});
+
+test('Start over the balance: kept bets after a no-win turn "Start again" off, hint fully on screen (desktop, tablet and phone)', async () => {
+  for (const size of [{ width: 1280, height: 720 }, { width: 768, height: 1024, touch: true }, { width: 360, height: 640, touch: true }]) {
+    const page = await fresh(size);
+    await setup(page, { balance: 300, bets: { 5: 100, 200: 100 }, chip: 1, history: [] });
+    await playTo(page, 2, null, 'BETTING');
+    assert.equal((await state(page)).balance, 100);
+    assert.deepEqual(await bets(page), { 5: 100, 200: 100 }, 'bets are kept');
+    assert.equal(await attr(page, 'btn-start', 'aria-disabled'), 'true');
+    const g = await page.evaluate(() => {
+      const el = document.querySelector('[data-role="start-hint"]'), b = el.getBoundingClientRect(), p = el.closest('.btn').getBoundingClientRect(), cs = getComputedStyle(el);
+      return { text: el.textContent, label: el.previousElementSibling.textContent, color: cs.color, fits: el.scrollWidth <= el.clientWidth + 1, inside: b.width > 0 && b.left >= p.left && b.right <= p.right && b.top >= p.top && b.bottom <= p.bottom, inView: p.bottom <= innerHeight && p.right <= innerWidth };
+    });
+    assert.deepEqual(g, { text: 'Not enough credits', label: 'Start again · 200', color: 'rgb(230, 234, 238)', fits: true, inside: true, inView: true }, `${size.width}`);
+    await page.__done();
+  }
+});
+
+test('faded losing spots: 85% over the frame fill, labels in text-primary, at desktop and phone', async () => {
+  for (const size of [{ width: 1920, height: 1080 }, { width: 360, height: 800, touch: true }]) {
+    const page = await fresh(size);
+    await setup(page, { balance: 1000, bets: { 5: 1, 200: 1 }, chip: 1, history: [] });
+    await playTo(page, 2, null, 'BETTING');
+    const g = await page.evaluate(() => [...document.querySelectorAll('.spot.lost')].map((e) => {
+      const b = e.getBoundingClientRect();
+      // .frame has pointer-events: none, so hit testing skips it: the first opaque fill found under the spot is the
+      // page behind the frame, which shows nothing else is painted between the spot and the frame
+      const under = document.elementsFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      const next = under.slice(under.indexOf(e) + 1).map((u) => getComputedStyle(u).backgroundColor).find((c) => !/^rgba\(.*, 0\)$|transparent/.test(c));
+      const fe = document.querySelector('.frame'), f = fe.getBoundingClientRect();
+      const inFrame = b.left >= f.left && b.right <= f.right && b.top >= f.top && b.bottom <= f.bottom;
+      return [e.dataset.id, getComputedStyle(e).opacity, getComputedStyle(e.querySelector('.sq')).color, getComputedStyle(e.querySelector('.sb')).color, getComputedStyle(e.querySelector('.sb b')).color, next, inFrame, getComputedStyle(fe).backgroundColor];
+    }));
+    const P = 'rgb(230, 234, 238)', B = 'rgb(110, 168, 254)', PAGE = 'rgb(15, 18, 22)', F = 'rgb(26, 31, 38)';
+    assert.deepEqual(g, [['tier-200', '0.85', P, P, B, PAGE, true, F], ['tier-5', '0.85', P, P, B, PAGE, true, F]], `${size.width}`);
+    await page.__done();
+  }
+});
+
 test('START locks squares and controls; bottom-bar Settings/Stats/Results locked (lock badge + reason) through SPINNING..PAYOUT; double-click START -> one round', async () => {
   const page = await fresh({ timeScale: 1 });
   await setup(page, { balance: 1000, bets: { 20: 1, 5: 1 }, chip: 1, history: [] });
@@ -165,9 +326,9 @@ test('START locks squares and controls; bottom-bar Settings/Stats/Results locked
   const s = await state(page);
   assert.equal(s.phase, 'SPINNING');
   assert.equal(s.balance, b0 - 2, 'deducted once');
-  const locked = await page.evaluate(() => [...document.querySelectorAll('.pay')].every((e) => e.getAttribute('aria-disabled') === 'true'));
-  assert.ok(locked, 'all tier buttons locked');
-  for (const id of ['chip-1', 'btn-half', 'btn-double', 'btn-undo', 'btn-clear', 'btn-rebet', 'btn-start', 'icon-settings', 'icon-stats', 'icon-results']) assert.equal(await attr(page, id, 'aria-disabled'), 'true', id);
+  const locked = await page.evaluate(() => [...document.querySelectorAll('.spot')].every((e) => e.getAttribute('aria-disabled') === 'true'));
+  assert.ok(locked, 'all tier spots locked');
+  for (const id of ['chip-1', 'btn-undo', 'btn-clear', 'btn-start', 'icon-settings', 'icon-stats', 'icon-results']) assert.equal(await attr(page, id, 'aria-disabled'), 'true', id);
   assert.equal(await attr(page, 'icon-sound', 'aria-disabled'), null, 'Sound stays live');
   assert.equal(await page.evaluate(() => document.querySelectorAll('#r-bar .ibtn .lk').length), 3, 'lock badges');
   assert.match(await attr(page, 'icon-settings', 'aria-label'), /Settings: unlocks when the round ends/);
@@ -329,7 +490,7 @@ test('Double Run: mid copy (DOUBLE RUN!, first stop, This round so far) and one 
   await page.__done();
 });
 
-test('loss keeps bets; after Collect ghost badges appear, hide on the first live bet; Rebet restores', async () => {
+test('loss keeps the bets on the spots and says where the light stopped', async () => {
   const page = await fresh();
   await setup(page, { balance: 1000, bets: { 20: 5, 50: 1 }, chip: 5, history: [] });
   await playTo(page, 27, null, 'BETTING');
@@ -337,21 +498,6 @@ test('loss keeps bets; after Collect ghost badges appear, hide on the first live
   assert.match(await text(page, '#r-centre'), /NO WIN THIS TIME/i);
   assert.match(await text(page, '#r-centre'), /The light stopped on #27 \(10x\)\. Your bets are still on the board\./i);
   assert.match(await text(page, '#r-controls'), /no win this round/);
-  await playTo(page, 13);
-  await page.keyboard.press('Enter');
-  await waitPhase(page, 'BETTING');
-  await settle(page);
-  assert.deepEqual(await bets(page), {});
-  assert.equal(await ghostCount(page), 2, 'dashed outlines on the 20x and 50x buttons');
-  assert.match(await text(page, '#r-centre'), /Press Rebet to place all 6 again/i);
-  assert.match(await text(page, '#r-controls'), /Rebet 6/);
-  await clickId(page, 'tier-10'); // first live bet hides every ghost
-  assert.equal(await ghostCount(page), 0, 'ghosts hidden on the first live bet');
-  await clickId(page, 'tier-10', { button: 'right' });
-  assert.equal(await ghostCount(page), 0, 'ghosts stay hidden until the next settle');
-  await page.keyboard.press('r');
-  assert.deepEqual(await bets(page), { 50: 1, 20: 5 });
-  assert.match(await toastText(page), /Bets restored from last round/);
   await page.__done();
 });
 
@@ -587,8 +733,8 @@ test('Start screen (flag on): PLAY is the first gesture, unlocks audio, then the
 });
 
 // ------------------------------------------------------------------ v3 frame and bottom bar (batch 2)
-test('frame: centred rounded frame, 230 px rail + 1 px divider, game area, 40 px bottom bar; v2 header removed', async () => {
-  for (const [w, h, fw, fh] of [[1920, 1080, 1600, 980], [1280, 720, 1248, 688]]) {
+test('frame: centred rounded frame, 320 px rail + 1 px divider, game area, 40 px bottom bar; v2 header removed', async () => {
+  for (const [w, h, fw, fh] of [[1920, 1080, 1680, 980], [1280, 720, 1248, 688]]) {
     const page = await fresh({ width: w, height: h });
     const g = await page.evaluate(() => {
       const r = (s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().toJSON() : null; };
@@ -608,9 +754,9 @@ test('frame: centred rounded frame, 230 px rail + 1 px divider, game area, 40 px
     assert.equal(g.railBg, 'rgb(28, 34, 42)', 'bg-rail');
     assert.equal(g.divider, '1px rgb(42, 49, 58)', 'divider');
     assert.equal(g.barBg, 'rgb(31, 38, 46)', 'bg-bottombar');
-    assert.equal(g.rail.width, 231, 'rail 230 + 1 px divider');
-    assert.deepEqual([g.controls.left, g.controls.width], [g.frame.left, 230], 'rail controls sit in the rail');
-    assert.equal(g.stage.left, g.frame.left + 231, 'game area right of the divider');
+    assert.equal(g.rail.width, 321, 'rail 320 + 1 px divider');
+    assert.deepEqual([g.controls.left, g.controls.width], [g.frame.left, 320], 'rail controls sit in the rail');
+    assert.equal(g.stage.left, g.frame.left + 321, 'game area right of the divider');
     assert.deepEqual([g.bar.left, g.bar.width, g.bar.height, g.bar.bottom], [g.frame.left, fw, 40, g.frame.bottom]);
     assert.ok(g.credits.left >= g.rail.left && g.credits.right <= g.rail.right && g.credits.top < g.controls.top + 40, 'credits at the top of the rail');
     assert.equal(g.header, false, 'no v2 header bar or play-credits pill');
@@ -867,70 +1013,21 @@ test('start and loading screens: flat v3 mark and plain controls; no bulb ring, 
 
 // ------------------------------------------------------------------ v3 rail controls (batch 3)
 const railText = (page, role) => text(page, `#r-controls [data-role="${role}"]`);
-const ALL6 = (v) => ({ 5: v, 10: v, 20: v, 50: v, 100: v, 200: v });
 
-test('bet field shows the TOTAL bet across all tiers, with tiers and the 1,000 round limit', async () => {
+test('total card shows the TOTAL bet across all spots against the 1,000 round limit', async () => {
   const page = await fresh();
-  assert.equal(await railText(page, 'total'), '0');
-  assert.match(await railText(page, 'bet-hint'), /^1–1,000 per tier · 1,000 per round$/);
+  assert.equal(await railText(page, 'total'), '0 / 1,000');
   await clickId(page, 'chip-5');
   await clickId(page, 'tier-50');
   await clickId(page, 'tier-20');
   await clickId(page, 'chip-1');
   await clickId(page, 'tier-200');
   assert.deepEqual(await bets(page), { 50: 5, 200: 1, 20: 5 });
-  assert.equal(await railText(page, 'total'), '11', 'sum of all tiers, not the chip');
-  assert.match(await railText(page, 'bet-hint'), /^3 tiers · 11 \/ 1,000 per round$/);
-  assert.match(await text(page, '[data-id="btn-start"]'), /Start\s*11 credits on 3 tiers/);
+  assert.equal(await railText(page, 'total'), '11 / 1,000', 'sum of all spots, not the chip');
+  assert.match(await text(page, '[data-id="btn-start"]'), /Start\s*11 on 3 spots/);
   assert.match(await text(page, '#r-credits'), /Credits\s*10,000/);
   await setup(page, { balance: 10000, bets: { 5: 200, 10: 200, 20: 200, 50: 200, 100: 200 }, chip: 1 });
-  assert.equal(await railText(page, 'total'), '1,000');
-  assert.match(await railText(page, 'bet-hint'), /5 tiers · 1,000 \/ 1,000 per round/);
-  await page.__done();
-});
-
-test('x2 doubles every tier bet, clamped to 1,000 per tier, 1,000 per round and the balance (toasts); 1/2 halves (min 1); one Undo step each', async () => {
-  const page = await fresh();
-  await setup(page, { balance: 10000, bets: { 5: 600 }, chip: 1, history: [] });
-  assert.equal(await railText(page, 'total'), '600');
-  await clickId(page, 'btn-double');
-  assert.deepEqual(await bets(page), { 5: 1000 }, '5x capped at 1,000');
-  assert.equal(await railText(page, 'total'), '1,000');
-  assert.match(await toastText(page), /Max bet reached – 1,000 per tier/);
-  await clickId(page, 'btn-half');
-  assert.deepEqual(await bets(page), { 5: 500 }, 'halved, rounded down, min 1');
-  await page.keyboard.press('z');
-  assert.deepEqual(await bets(page), { 5: 1000 }, 'Undo reverts one scale step');
-  await page.keyboard.press('z');
-  assert.deepEqual(await bets(page), { 5: 600 });
-  // round cap: 6 tiers x 100 = 600 -> 1,000, shared evenly
-  await setup(page, { balance: 10000, bets: ALL6(100), chip: 1 });
-  await page.evaluate(() => { window.__rl.app.ui.toast = null; });
-  await clickId(page, 'btn-double');
-  const b = await bets(page);
-  assert.equal(Object.values(b).reduce((a, x) => a + x, 0), 1000);
-  assert.ok(Object.values(b).every((x) => x === 166 || x === 167), 'even split');
-  assert.equal(await railText(page, 'total'), '1,000');
-  assert.match(await toastText(page), /Round limit reached – 1,000 per round/);
-  assert.equal(await attr(page, 'btn-double', 'aria-disabled'), 'true', 'x2 off at the round cap');
-  // balance cap
-  await setup(page, { balance: 25, bets: { 5: 5, 10: 5, 20: 5 }, chip: 1 });
-  await clickId(page, 'btn-double');
-  assert.equal(await railText(page, 'total'), '25');
-  assert.match(await toastText(page), /Not enough credits/);
-  // nothing to do -> disabled
-  await setup(page, { balance: 1000, bets: { 5: 1, 10: 1 }, chip: 1 });
-  assert.equal(await attr(page, 'btn-half', 'aria-disabled'), 'true', '1/2 off when every tier is at 1');
-  await setup(page, { balance: 1000, bets: {}, chip: 1 });
-  assert.equal(await attr(page, 'btn-double', 'aria-disabled'), 'true', 'x2 off with no bets');
-  assert.equal(await attr(page, 'btn-half', 'aria-disabled'), 'true', '1/2 off with no bets');
-  // the scaled bets are what START plays
-  await setup(page, { balance: 1000, bets: { 20: 2, 50: 1 }, chip: 1, history: [] });
-  await clickId(page, 'btn-double');
-  await playTo(page, 27, null, 'BETTING');
-  const s = await state(page);
-  assert.deepEqual(s.round.bets, { 20: 4, 50: 2 });
-  assert.equal(s.balance, 994);
+  assert.equal(await railText(page, 'total'), '1,000 / 1,000');
   await page.__done();
 });
 
@@ -940,7 +1037,10 @@ test('last bets (top row, right of "Last results"): each round shows its TOTAL b
   assert.equal(await page.evaluate(() => document.querySelector('#r-controls [data-role="last-bets"]')), null, 'moved out of the rail');
   await setup(page, { balance: 1000, bets: { 20: 5, 50: 1 }, chip: 1, history: [] });
   await playTo(page, 27, null, 'BETTING'); // loss: bets stay on the board
-  await clickId(page, 'btn-double');
+  await clickId(page, 'chip-5');
+  await clickId(page, 'tier-200');
+  await clickId(page, 'chip-1');
+  await clickId(page, 'tier-200');
   await playTo(page, 27, null, 'BETTING');
   const lbs = await page.evaluate(() => [...document.querySelectorAll('#r-top [data-role="last-bets"] .lb')].map((e) => [e.textContent, e.classList.contains('new')]));
   assert.deepEqual(lbs, [['12', true], ['6', false]]);
@@ -988,12 +1088,12 @@ test('rail look (1920): flat token colours, blue Start, green Collect with dark 
     const h = (sel) => document.querySelector(sel).getBoundingClientRect().height;
     const shadows = [...document.querySelectorAll('#r-controls *, #r-controls .chip')].flatMap((e) => [getComputedStyle(e), getComputedStyle(e, '::after')]).filter((s) => s.boxShadow !== 'none' || s.textShadow !== 'none' || s.filter !== 'none').length;
     return {
-      start: [cs('btn-start').backgroundColor, cs('btn-start').color], input: h('.betin'), main: h('[data-id="btn-start"]'), act: h('[data-id="btn-undo"]'), chip: h('[data-id="chip-5"]'),
+      start: [cs('btn-start').backgroundColor, cs('btn-start').color], main: h('[data-id="btn-start"]'), act: h('[data-id="btn-undo"]'), chip: h('[data-id="chip-5"]'),
       sel: getComputedStyle(document.querySelector('[data-id="chip-5"]'), '::after').borderTopColor, shadows,
     };
   });
   assert.deepEqual(look.start, ['rgb(13, 110, 253)', 'rgb(255, 255, 255)'], 'Start: accent-blue, white text');
-  assert.deepEqual([look.input, look.main, look.act, look.chip], [40, 52, 32, 34]);
+  assert.deepEqual([look.main, look.act, look.chip], [60, 52, 56]);
   assert.equal(look.sel, 'rgb(255, 255, 255)', 'selected chip: white ring');
   assert.equal(look.shadows, 0, 'no box/text shadows or filters in the rail');
   await playTo(page, 13);
@@ -1044,22 +1144,24 @@ async function installRunProbe(page) {
   });
 }
 
-test('centre: the big mono number is the multiplier (00.00x idle; the square under the light while running; then the stop)', async () => {
+test('centre: no big number while betting (mock); during a round it is the multiplier under the light, then the stop', async () => {
   const page = await fresh({ timeScale: 1 });
   await setup(page, { balance: 1000, bets: { 50: 1, 200: 1 }, history: [] });
-  const idle = await page.evaluate(() => {
-    const b = document.querySelector('#r-centre .big');
-    const cs = getComputedStyle(b);
-    return { text: b.textContent, font: cs.fontFamily, size: cs.fontSize, color: cs.color, contain: cs.contain };
-  });
-  assert.equal(idle.text, '00.00x');
-  assert.match(idle.font, /^"JetBrains Mono"/);
-  assert.deepEqual([idle.size, idle.color, idle.contain], ['88px', 'rgb(106, 116, 128)', 'strict'], 'big-number 88 px, #6a7480, contained');
-  assert.match((await text(page, '#r-centre')).replace(/\s+/g, ' '), /Betting open ?Double Run · 1 in 25 ?00\.00x ?Place your bets ?Pick a chip, tap a tier to bet on it, then press Start\. ?5x ?12 squares.*200x ?Bet 1 ?Blank square · no win · 20 of 50/);
+  assert.equal(await page.evaluate(() => document.querySelector('#r-centre .big')), null);
+  assert.match((await text(page, '#r-centre')).replace(/\s+/g, ' '), /Betting open ?Double Run · 1 in 25 ?Pick a tier spot ?Win if the light stops on any square of that tier\. ?200x ?1 in 218\.3 ?1 square ?Bet 1.*5x ?1 in 5\.46 ?12 squares ?No bet ?Blank square · no win · 20 of 50/);
   await installRunProbe(page);
   await force(page, 29);
   await page.evaluate(() => { window.__probe.on = true; });
   await dispatch(page, { type: 'START' });
+  const big = await page.evaluate(() => {
+    window.__probe.on = false; // our own getComputedStyle call is not the app's
+    const cs = getComputedStyle(document.querySelector('#r-centre .big'));
+    const out = { font: cs.fontFamily, size: cs.fontSize, color: cs.color, contain: cs.contain };
+    window.__probe.on = true;
+    return out;
+  });
+  assert.match(big.font, /^"JetBrains Mono"/);
+  assert.deepEqual([big.size, big.color, big.contain], ['88px', 'rgb(106, 116, 128)', 'strict'], 'big-number 88 px, #6a7480, contained');
   await waitPhase(page, ['RESOLVING', 'GAMBLE_OFFER']);
   const P = await page.evaluate(() => { window.__probe.on = false; return window.__probe; });
   const running = P.batches.filter((b) => b.lit);
@@ -1164,7 +1266,7 @@ const centreLook = (page) => page.evaluate(() => {
   return {
     pills: [...document.querySelectorAll('#r-centre .cp')].map((p) => [p.textContent, getComputedStyle(p).color, getComputedStyle(p).backgroundColor]),
     big: q('.big')?.textContent ?? null, bigColor: q('.big') ? getComputedStyle(q('.big')).color : null, big2: q('.big2')?.textContent ?? null,
-    on: [...document.querySelectorAll('#r-centre .pay.on b')].map((b) => [b.textContent, getComputedStyle(b).backgroundColor, getComputedStyle(b).color]),
+    on: [...document.querySelectorAll('#r-centre .spot.won')].map((b) => [b.querySelector('.sm').textContent, getComputedStyle(b).backgroundColor, getComputedStyle(b).color, b.querySelector('.sb').textContent]),
     cards: [...document.querySelectorAll('#r-centre .card')].map((c) => c.innerText.replace(/\s+/g, ' ').trim()),
     band: q('.gband') ? q('.gband').innerText.replace(/\s+/g, ' ').trim() : null, bandBg: q('.gband') ? getComputedStyle(q('.gband')).backgroundColor : null,
   };
@@ -1180,7 +1282,8 @@ test('result: win + gamble offer (win-gamble-offer.png): light 20.00x, green sto
   assert.equal(c.pills[0][1], 'rgb(74, 222, 128)', 'Win pill: green text');
   assert.deepEqual([c.big, c.bigColor, c.big2], ['20.00x', 'rgb(230, 234, 238)', null], 'the multiplier stays the big number, light when won');
   assert.match((await words(page, '#r-centre .ctxt')), /^You win 100 Collect it, or gamble it on a 50\/50\.$/);
-  assert.deepEqual(c.on, [['20x', GREEN, ON_GREEN]], 'only the won tier is green');
+  assert.deepEqual(c.on, [['20x', GREEN, ON_GREEN, 'Won 100']], 'only the won spot is green');
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.spot.lost').length), 5, 'the spots that bet and lost fade');
   assert.deepEqual(c.cards, ['#13 20x Bet × pays 5 × 20 = 100']);
   assert.equal(c.band, 'Double or nothing 50/50 · Win → 200 · Lose → 0 3 of 3 left');
   assert.equal(c.bandBg, 'rgb(20, 41, 74)', 'navy band');
@@ -1265,10 +1368,10 @@ test('result: loss on a blank square (loss.png): No win pill, 00.00x grey, light
   const c = await centreLook(page);
   assert.deepEqual(c.pills.map((p) => p[0]), ['No win', 'Double Run · 1 in 25']);
   assert.equal(c.pills[0][1], 'rgb(248, 113, 113)', 'No win: red text');
-  assert.deepEqual([c.big, c.bigColor], ['00.00x', 'rgb(106, 116, 128)'], 'loss: 00.00x in the idle grey');
+  assert.deepEqual([c.big, c.bigColor], [null, null], 'loss: back to the spots, no big number');
   assert.equal((await words(page, '#r-centre .ctxt')), 'No win this time The light stopped on #2 (blank). Your bets are still on the board. Press Start to play them again.');
-  assert.deepEqual(c.on, [], 'no pays pill lit');
-  assert.deepEqual(c.cards, ['#2 – Your bet Blank · no win']);
+  assert.deepEqual(c.on, [], 'no spot won');
+  assert.deepEqual(c.cards, []);
   assert.equal(c.band, null);
   const t = await tileStyle(page, 2);
   assert.deepEqual([t.bg, t.m], ['rgb(233, 238, 243)', 'rgb(15, 18, 22)'], 'loss stop: tile-lit fill, dark text');
@@ -1277,7 +1380,7 @@ test('result: loss on a blank square (loss.png): No win pill, 00.00x grey, light
   await sleep(100);
   assert.equal((await tileStyle(page, 2)).bg, 'rgb(233, 238, 243)', 'hover keeps the lit look');
   assert.deepEqual(await bets(page), MOCK_BETS, 'bets stay on the board');
-  assert.match((await words(page, '[data-id="btn-start"]')), /^Start 20 credits on 6 tiers · Space$/);
+  assert.match((await words(page, '[data-id="btn-start"]')), /^Start again 20 on 6 spots$/);
   await page.__done();
 });
 
@@ -1290,7 +1393,7 @@ test('result: Double Run (double-run-result.png): "100.00x + 20.00x", both stops
   assert.deepEqual([c.pills[0][1], c.pills[1][2]], ['rgb(74, 222, 128)', 'rgb(13, 110, 253)']);
   assert.deepEqual([c.big, c.bigColor, c.big2], ['100.00x', 'rgb(230, 234, 238)', '+ 20.00x']);
   assert.equal((await words(page, '#r-centre .ctxt')), 'You win 300 Two squares won this round. A second light ran and could not stop on #21.');
-  assert.deepEqual(c.on.map((x) => x[0]), ['20x', '100x']);
+  assert.deepEqual(c.on.map((x) => [x[0], x[3]]), [['100x', 'Won 200'], ['20x', 'Won 100']]);
   assert.deepEqual(c.cards, ['1 · #21 100x Bet × pays 2 × 100 = 200', '2 · #33 20x Bet × pays 5 × 20 = 100']);
   assert.equal(c.band, 'Double or nothing 50/50 · Win → 600 · Lose → 0 3 of 3 left');
   for (const [n, mark] of [[21, '1st'], [33, '2nd']]) {
@@ -1306,8 +1409,9 @@ test('result: Double Run (double-run-result.png): "100.00x + 20.00x", both stops
   await setup(page, { balance: 1000, bets: { 50: 2 }, chip: 5 });
   await playTo(page, 21, 33, 'BETTING');
   const l = await centreLook(page);
-  assert.deepEqual([l.pills[0][0], l.big, l.big2], ['No win', '00.00x', null]);
-  assert.deepEqual(l.cards, ['1 · #21 100x Your bet No 100x bet', '2 · #33 20x Your bet No 20x bet']);
+  assert.deepEqual([l.pills[0][0], l.big, l.big2], ['No win', null, null]);
+  assert.deepEqual(l.cards, []);
+  assert.match(await words(page, '#r-centre .ctxt'), /The lights stopped on #21 and #33\./);
   assert.deepEqual([(await tileStyle(page, 21)).mark, (await tileStyle(page, 33)).bg], ['1st', 'rgb(233, 238, 243)']);
   await page.__done();
 });
@@ -1428,7 +1532,7 @@ for (const [w, h, bp] of SIZES) {
   });
 }
 
-test('touch (768x1024): a tap on a tier button adds the chip; a tap or long-press on a square does nothing', async () => {
+test('touch (768x1024): a tap on a tier spot adds the chip; a tap or long-press on a square does nothing', async () => {
   const page = await fresh({ width: 768, height: 1024, touch: true });
   const q = await centerOf(page, 'tier-20');
   await page.touchscreen.tap(q.x, q.y);
@@ -1493,7 +1597,15 @@ for (const [w, h, cols, rows, size] of PHONES) {
     assert.equal(pos.topEnd[0], pos.rightEnd[0], 'right column');
     assert.equal(pos.rightEnd[1], pos.botEnd[1], 'bottom row');
     assert.equal(pos.last[0], pos.first[0], 'left column back to #1');
-    // a tap on a tier button bets, a tap on a square does not
+    // 2 x 3 spots with their bet on screen, the total on Start; a tap on a spot bets, a tap on a square does not
+    const sp = await page.evaluate(() => {
+      const r = (e) => e.getBoundingClientRect();
+      const spots = [...document.querySelectorAll('.spot')];
+      return { cols: new Set(spots.map((e) => Math.round(r(e).left))).size, rows: new Set(spots.map((e) => Math.round(r(e).top))).size, sq: getComputedStyle(spots[0].querySelector('.sq')).display, body: parseFloat(getComputedStyle(document.querySelector('.centre.open .csub')).fontSize), total: document.querySelector('.tbet') };
+    });
+    assert.deepEqual([sp.cols, sp.rows, sp.sq], [2, 3, h <= 700 ? 'none' : 'block'], 'square count hidden at 700 px tall or less');
+    assert.equal(sp.body, 14);
+    assert.equal(sp.total, null, 'phones show the total on Start only');
     const q = await centerOf(page, 'tier-200');
     await page.touchscreen.tap(q.x, q.y);
     const p = await centerOf(page, 'sq-13');

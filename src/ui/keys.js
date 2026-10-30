@@ -1,6 +1,7 @@
 // Keyboard map (spec B8 + B13 fix 2). Pure: maps a key event + context to an intent.
 // Intents: { kind: 'dispatch', action } | { kind: 'activate' } (press focused control) |
 //          { kind: 'focusTier', delta } | { kind: 'tab', delta } | { kind: 'slider', delta } | null
+import { CHIPS } from '../engine/config.js';
 
 const NAV_KEYS = new Set(['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
@@ -58,12 +59,11 @@ export function mapKey(e, ctx) {
     if (k === 'Enter' || k === ' ') return activateOr(null);
     return null;
   }
-  if (/^[1-5]$/.test(k) && !e.ctrlKey) {
-    return { kind: 'dispatch', action: { type: 'SELECT_CHIP', value: [1, 5, 10, 25, 50][Number(k) - 1] } };
+  if (/^[1-7]$/.test(k) && !e.ctrlKey) {
+    return { kind: 'dispatch', action: { type: 'SELECT_CHIP', value: CHIPS[Number(k) - 1] } };
   }
   if (k === 'z' || (k === 'z' && e.ctrlKey)) return { kind: 'dispatch', action: { type: 'UNDO' } };
   if (k === 'c' && !e.ctrlKey) return { kind: 'dispatch', action: { type: 'CLEAR' } };
-  if (k === 'r' && !e.ctrlKey) return { kind: 'dispatch', action: { type: 'REBET' } };
   if (focus.kind === 'tier') {
     if (k === 'Enter') return { kind: 'dispatch', action: { type: e.shiftKey ? 'REMOVE_BET' : 'ADD_BET', tier: focus.tier } };
     if (k === 'Backspace') return { kind: 'dispatch', action: { type: 'REMOVE_BET', tier: focus.tier } };

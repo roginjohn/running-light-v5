@@ -71,17 +71,13 @@ svg { display: block; }
 .dock .rdisc { grid-column: 1 / -1; align-self: end; }
 .grp { display: flex; flex-direction: column; gap: 6px; flex: none; }
 .rhead { height: 16px; display: flex; align-items: center; white-space: nowrap; }
-.hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.betin { display: flex; align-items: stretch; height: var(--input-h); background: var(--c-bg-input); border: var(--b-hairline) solid var(--c-border-input); border-radius: var(--r-input); }
-.betin .coin { width: 12px; height: 12px; border-radius: 50%; background: var(--c-accent-green); align-self: center; margin: 0 var(--sp-2) 0 var(--sp-3); flex: none; }
-.betin .v { flex: 1; min-width: 0; align-self: center; font-size: var(--fs-label-lg); font-weight: var(--fw-label-lg); color: var(--c-text-primary); overflow: hidden; }
-.betin .sc { width: 38px; flex: none; display: grid; place-items: center; border-left: var(--b-hairline) solid var(--c-border-input); color: var(--c-text-muted); font-weight: 700; }
-.betin .sc:last-child { border-radius: 0 var(--r-input) var(--r-input) 0; }
-.betin .sc:not([aria-disabled="true"]):hover { background: var(--c-border-input); color: var(--c-text-primary); }
-.betin .sc[aria-disabled="true"] { color: var(--c-text-dim); }
-.betin.off .v { color: var(--c-text-muted); }
+/* total bet card: "190 / 1,000", max per spot */
+.tbet { display: grid; grid-template-columns: 1fr auto; row-gap: 2px; align-items: baseline; padding: var(--sp-3); border-radius: var(--r-card); background: var(--c-bg-card); flex: none; }
+.tbet .v { font-size: var(--fs-label-lg); color: var(--c-text-primary); }
+.tbet .v b { font-weight: 700; color: var(--c-text-strong); }
+.tbet .rl { grid-column: 1 / -1; }
 .acts { display: flex; gap: var(--sp-2); flex: none; }
-.acts .btn { flex: 1; min-width: 0; height: var(--act-h); font-size: 13px; }
+.acts .btn { flex: 1; min-width: 0; height: var(--act-h); font-size: var(--fs-label-lg); }
 .mains { display: flex; flex-direction: column; gap: var(--sp-2); flex: none; }
 .rail .btn.stack, .dock .btn.stack { width: 100%; height: var(--main-h); font-size: var(--fs-label-lg); }
 .rnote { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-card); background: var(--c-bg-card-pill); border: var(--b-hairline) solid var(--c-divider); flex: none; }
@@ -98,7 +94,6 @@ svg { display: block; }
 .btn.sec { background: var(--c-bg-input); border: var(--b-hairline) solid var(--c-border-input); color: var(--c-text-primary); }
 .btn.sec:not([aria-disabled="true"]):hover { background: var(--c-border-input); }
 .btn.sec[aria-disabled="true"] { color: var(--c-text-dim); background: var(--c-bg-input); border-color: var(--c-divider); }
-.btn.sec.hi { border-color: var(--c-accent-blue); }
 .kc { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--c-border-input); background: var(--c-bg-segment); color: var(--c-text-primary); font-size: 11px; font-weight: 700; }
 /* primary (Start, modal actions) and Gamble ×2: accent-blue, white text; Collect: accent-green, dark text (tokens.md §1) */
 .btn:is(.cta, .pri, .gam, .collect) { font-family: var(--f-sans); font-weight: 700; color: var(--c-text-strong); background: var(--c-accent-blue); border: 0; }
@@ -108,10 +103,14 @@ svg { display: block; }
 /* Collect while the gamble disc flips: outline, locked (component sheet "outline · locked") */
 .btn.out { border: var(--b-hairline) solid var(--c-border-input); color: var(--c-text-primary); }
 .btn .sub { font-size: var(--fs-label-sm); font-weight: var(--fw-label-sm); }
+.btn .sub.short { color: var(--c-text-primary); } /* "Not enough credits" is not disabled text: it has to stay readable */
 .btn.stack { flex-direction: column; gap: 0; line-height: var(--lh-label-sm); }
 
 /* ---------- chips (v3 flat poker chips: fill + 8 white edge stripes; selected = 2 px white ring on a 2 px gap) ---------- */
-.chips { display: flex; justify-content: space-between; padding: 0 4px; }
+/* seven chips: 4 + 3 grid in the rail (tiers/SPEC.md §2.7), one row in a dock */
+.chips { display: grid; grid-template-columns: repeat(4, var(--chip)); gap: 12px; }
+.dock .chips { display: flex; justify-content: space-between; gap: 0; }
+#app[data-bp^="desktop"] .chip .cv { font-size: 15px; }
 .chip { position: relative; display: grid; place-items: center; width: var(--chip); height: var(--chip); border-radius: var(--r-chip); flex: none; }
 .chip > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .chip .face { fill: var(--chip-bg); }
@@ -120,8 +119,6 @@ svg { display: block; }
 .chip.c1 { --chip-bg: var(--c-chip-1); --chip-ink: var(--c-chip-1-ink); } .chip.c5 { --chip-bg: var(--c-chip-5); --chip-ink: var(--c-chip-5-ink); }
 .chip.c10 { --chip-bg: var(--c-chip-10); --chip-ink: var(--c-chip-10-ink); } .chip.c25 { --chip-bg: var(--c-chip-25); --chip-ink: var(--c-chip-25-ink); }
 .chip.c50 { --chip-bg: var(--c-chip-50); --chip-ink: var(--c-chip-50-ink); }
-/* TEMPORARY (Batch 2 adapter, removed in Batch 5): the 7 v5 chips wrap onto a second row in the v3 rail */
-.chips { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
 .chip.c100 { --chip-bg: var(--c-chip-100); --chip-ink: var(--c-chip-100-ink); } .chip.c500 { --chip-bg: var(--c-chip-500); --chip-ink: var(--c-chip-500-ink); }
 .chip.sel::after { content: ''; position: absolute; inset: -4px; border-radius: var(--r-chip); border: var(--b-focus) solid var(--c-focus-ring); }
 .chip[aria-disabled="true"] { opacity: .4; }
@@ -186,16 +183,41 @@ svg { display: block; }
 .ctitle { font-size: var(--fs-title); font-weight: var(--fw-title); line-height: var(--lh-title); color: var(--c-text-primary); }
 .csub { font-size: var(--fs-label-md); line-height: var(--lh-label-md); font-weight: 600; color: var(--c-text-muted); }
 :is(.csub, .toprow, .gnote) b { color: var(--c-text-strong); font-weight: 700; }
-.pays { display: flex; gap: var(--sp-2); margin-top: var(--sp-1); }
-/* TEMPORARY (Batch 5 replaces these with the six tier spots): the pays row takes the bets while the ring is display-only */
-.pay { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--c-text-muted); font-size: var(--fs-label-sm); font-weight: 600; }
-.pay b { height: 28px; padding: 0 16px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--c-bg-card-pill); border: 1px solid transparent; font-size: var(--fs-label-md); }
-.pay:not([aria-disabled="true"]):hover b { border-color: var(--c-border-input); }
-.pay.has b { border-color: var(--c-accent-blue); } .pay.has i { color: var(--c-accent-blue-text); }
-.pay.ghost b { border: 1px dashed var(--c-accent-blue-text); }
-.pay[aria-disabled="true"] { cursor: default; }
-.pay i { font-style: normal; color: var(--c-text-muted); }
-.pay.on b { background: var(--c-accent-green); color: var(--c-text-on-green); } .pay.on i { color: var(--c-accent-green-text); }
+/* six tier spots (tiers/SPEC.md §2.3): the centre's main content while betting is open; a compact strip during a round */
+.centre.open { align-items: stretch; justify-content: flex-start; text-align: left; }
+.centre.open .ctxt { align-items: flex-start; max-width: 100%; }
+.spots { flex: 1; min-height: 0; align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: var(--sp-3); }
+.spot { min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-card); background: var(--c-bg-card); border: 1px solid var(--c-border-input); overflow: hidden; }
+.spot.k100, .spot.k200 { background: var(--c-bg-panel-navy); border-color: var(--c-border-panel-navy); }
+.spot:not([aria-disabled="true"]):hover { border-color: var(--c-text-muted); }
+.spot[aria-disabled="true"] { cursor: default; }
+.spot .sm { font: 600 30px/34px var(--f-mono); }
+.spot .so { font-size: var(--fs-label-lg); line-height: 20px; color: var(--c-text-primary); }
+.spot .sq { font-size: var(--fs-label-sm); line-height: 16px; color: var(--c-text-muted); }
+.spot .sb { font-size: var(--fs-label-md); line-height: 20px; color: var(--c-text-muted); }
+.spot.has { border-color: var(--c-accent-blue); }
+.spot.has .sb b { font-weight: 700; color: var(--c-accent-blue-text); }
+.spot.won { background: var(--c-accent-green); border-color: var(--c-accent-green-text); color: var(--c-text-on-green); }
+.spot.won :is(.so, .sq, .sb), .spot.won .sb b { color: var(--c-text-on-green); }
+/* the fade covers the whole spot, so its text-muted labels (4.7:1 unfaded on navy) move to text-primary to keep AA */
+.spot.lost { opacity: var(--o-spot-lost); }
+.spot.lost :is(.sq, .sb) { color: var(--c-text-primary); }
+.spots.compact { flex: none; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); }
+.spots.compact .spot { padding: var(--sp-1) var(--sp-2); text-align: center; }
+.spots.compact :is(.so, .sq) { display: none; }
+.spots.compact .sm { font-size: 20px; line-height: 24px; }
+.spots.compact .sb { font-size: var(--fs-label-sm); line-height: 16px; }
+#app[data-bp="desktop-xl"] .centre.open { padding: var(--sp-3) var(--sp-5); gap: var(--sp-4); }
+#app[data-bp="desktop-xl"] .centre.open .ctitle { font-size: 28px; line-height: 34px; }
+#app[data-bp="desktop-xl"] .centre.open .csub { font-size: 16px; line-height: 22px; }
+#app[data-bp="desktop-xl"] .spots:not(.compact) { gap: var(--sp-4); }
+#app[data-bp="desktop-xl"] .spots:not(.compact) .spot { padding: var(--sp-4) var(--sp-5); gap: 4px; }
+#app[data-bp="desktop-xl"] .spots:not(.compact) .sm { font-size: 40px; line-height: 44px; }
+#app[data-bp="desktop-xl"] .spots:not(.compact) .so { font-size: 18px; line-height: 24px; }
+#app[data-bp="desktop-xl"] .spots:not(.compact) .sq { font-size: 14px; line-height: 20px; }
+#app[data-bp="desktop-xl"] .spots:not(.compact) .sb { font-size: 16px; line-height: 22px; margin-top: 4px; }
+#app[data-bp^="tablet"] .spots:not(.compact) .spot { padding: var(--sp-2) var(--sp-3); gap: 0; }
+#app[data-bp^="tablet"] .spots:not(.compact) .sm { font-size: 24px; line-height: 28px; }
 .bkey { display: flex; align-items: center; gap: 6px; font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); white-space: nowrap; }
 .bkey .sw { flex: none; width: 16px; height: 16px; border-radius: 3px; }
 /* result cards (component sheet): "#13 [480x] Bet × pays 5 × 480 = 2,400" (green border + value when won) */
@@ -356,10 +378,9 @@ svg { display: block; }
 #app[data-bp="phone"] .bbar .bb-l { gap: 0; }
 #app[data-bp="phone"] .bbar .ibtn { width: 44px; height: 44px; }
 .dock.ph { display: flex; flex-direction: column; gap: var(--gap-y); padding: 8px 12px 10px; background: var(--c-bg-bottombar); }
-.dock.ph .chips { flex-wrap: nowrap; justify-content: space-between; gap: 0; padding: 0; }
 .dock.ph .chip .cv { font-size: 13px; }
 .phact { display: flex; gap: var(--sp-2); }
-.phact .acts .btn { flex: none; width: 58px; height: var(--act-h); }
+.phact .acts .btn { flex: none; width: 72px; height: var(--act-h); }
 .phact .mains { flex: 1; flex-direction: row; min-width: 0; }
 .dock.ph :is(.mains, .phact) > .btn.stack { flex: 1; width: auto; min-width: 0; padding: 0 var(--sp-1); }
 .dock.ph .btn .sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
@@ -368,10 +389,15 @@ svg { display: block; }
 #app[data-bp="phone"] .ctxt { gap: 2px; max-width: 100%; }
 #app[data-bp="phone"] .ctitle { font-size: 16px; line-height: 20px; }
 #app[data-bp="phone"] .csub { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
-#app[data-bp="phone"] .pays { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-1); width: 100%; margin-top: 0; }
-#app[data-bp="phone"] .pay { min-height: 44px; gap: 0; }
-#app[data-bp="phone"] .pay b { width: 100%; height: 26px; padding: 0; }
-#app[data-bp="phone"] .pay i { line-height: var(--lh-label-sm); }
+#app[data-bp="phone"] .centre.open .cps { justify-content: flex-start; }
+#app[data-bp="phone"] .centre.open .ctitle { font-size: var(--fs-title); line-height: 24px; }
+#app[data-bp="phone"] .centre.open .csub { font-size: 14px; line-height: 18px; }
+#app[data-bp="phone"] .spots { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+#app[data-bp="phone"] .spots.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-1); }
+#app[data-bp="phone"] .spots:not(.compact) .spot { padding: 6px 10px; gap: 1px; }
+#app[data-bp="phone"] .spots:not(.compact) .sm { font-size: 22px; line-height: 26px; }
+#app[data-bp="phone"] .spots:not(.compact) .so { font-size: 13px; line-height: 16px; }
+#app[data-bp="phone"] .spots:not(.compact) .sb { font-size: 13px; line-height: 18px; }
 #app[data-bp="phone"] .cards { flex-direction: column; gap: var(--sp-1); width: 100%; }
 #app[data-bp="phone"] .card { gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); justify-content: center; }
 #app[data-bp="phone"] .gband { flex-wrap: wrap; justify-content: center; gap: 2px var(--sp-2); padding: var(--sp-1) var(--sp-2); white-space: normal; }
@@ -381,7 +407,15 @@ svg { display: block; }
 #app[data-bp="phone"] .gc { flex: 1; min-width: 0; padding: var(--sp-1) 6px; font-size: var(--fs-label-sm); }
 #app[data-bp="phone"] .gmsg, #app[data-bp="phone"] .gnote, #app[data-bp="phone"] .grec { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
 @media (max-height: 700px) {
-  #app[data-bp="phone"] :is(.csub, .gnote, .grec) { display: none; }
+  #app[data-bp="phone"] :is(.csub, .gnote, .grec), #app[data-bp="phone"] .centre.open .csub { display: none; }
+  #app[data-bp="phone"] .spot .sq { display: none; }
+  #app[data-bp="phone"] .spots:not(.compact) .spot { padding: 4px 8px; }
+  #app[data-bp="phone"] .spots:not(.compact) .sm { font-size: 20px; line-height: 24px; }
+}
+
+/* touch screens have no keyboard: no shortcut list or key hints (v3 audit fix) */
+@media (hover: none) and (pointer: coarse) {
+  .keylist, .gk { display: none; }
 }
 
 /* reduced motion: no trail or pops; the gamble flip becomes a 120 ms crossfade */

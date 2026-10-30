@@ -1,43 +1,45 @@
 // Responsive layout. Pure: viewport size -> region rectangles and tile geometry. The track pitch is fitted to the
 // available space and clamped to the token values (never larger).
 // v3 frame (batch 2, tokens.md §4): a centred frame (max 1600x980, 16 px minimum page margin) holding the rail
-// (230 px + 1 px divider) and the game area, with a 40 px bottom bar across the full frame width. Tablet portrait
-// stacks game area, control dock and bottom bar inside the same frame.
+// (320 px on desktop, 230 px at tablet-landscape widths, + 1 px divider) and the game area, with a 40 px bottom bar
+// across the full frame width. Tablet portrait stacks game area, control dock and bottom bar inside the same frame.
 // Phones (v5 batch 4, tiers/SPEC.md §2.9): under 600 px wide in portrait the frame fills the screen, the bar moves to
 // the top, a compact dock sits at the bottom, and the ring is 11x16 (12x15 at 700 px tall or less).
 
-export const FRAME = { maxW: 1600, maxH: 980, margin: 16, rail: 230, divider: 1, bar: 40 };
+// v5 batch 5: maxW 1680 (v3: 1600) keeps the 80 px pitch beside the 320 px rail (tiers/SPEC.md §2.7, §2.9).
+export const FRAME = { maxW: 1680, maxH: 980, margin: 16, rail: 230, desktopRail: 320, divider: 1, bar: 40 };
 export const TRACK = { gap: 6, pitchMin: 40, pitchMax: 80 }; // v5: 80 px max pitch, 74 px squares at 1920x1080 (tiers/SPEC.md §2.9)
 export const TOP_ROW = { h: 56, hSmall: 44 };
-export const PHONE = { bar: 44, gap: 3, marginX: 12, marginY: 6, dockH: 122, smallH: 700 };
+export const PHONE = { bar: 44, gap: 3, marginX: 12, marginY: 6, dockH: 124, smallH: 700 };
 // big mono multiplier (tokens.md §2): 88 desktop, 64 at 1280x720, 52 on tablet portrait, 32 on phones
 export const BIG_F = { 'desktop-xl': 88, desktop: 64, 'tablet-landscape': 64, 'tablet-portrait': 52, phone: 32 };
 
-// Rail controls (v3 batch 3, tokens.md §3): rail padding 16 (12 at 1280) with a 12 gap between blocks; input 40,
-// chip 34 (40 on tablet), secondary button 32, primary button 52 (48 at 1280, 56 on tablet).
+// Rail controls (v5 batch 5, tiers/SPEC.md §2.7): desktop chips 56 in a 4 + 3 grid, secondary button 52 (44 at 1280),
+// primary button 60 (52 at 1280); tablets keep the v3 sizes (chip 34 / 40, secondary 32, primary 48 / 56); phones
+// have 44 px chips in one row and 52 px buttons.
 // disc = gamble disc size in the navy gamble panel of the centre (v3 batch 5).
 const BPS = {
   'desktop-xl': {
     s: 1, disc: 96,
-    rail: { pad: 16, chip: 34, gapY: 12, inputH: 40, actH: 32, mainH: 52 },
+    rail: { w: FRAME.desktopRail, pad: 20, chip: 56, gapY: 12, actH: 52, mainH: 60 },
   },
   desktop: {
     s: 0.8, disc: 72,
-    rail: { pad: 12, chip: 34, gapY: 12, inputH: 40, actH: 32, mainH: 48 },
+    rail: { w: FRAME.desktopRail, pad: 16, chip: 56, gapY: 12, actH: 44, mainH: 52 },
   },
   'tablet-landscape': {
     s: 0.8, disc: 64,
-    rail: { pad: 12, chip: 34, gapY: 12, inputH: 40, actH: 32, mainH: 48 },
+    rail: { w: FRAME.rail, pad: 12, chip: 34, gapY: 12, actH: 32, mainH: 48 },
   },
   'tablet-portrait': {
     s: 0.85, disc: 56,
     // fitH: the dock's content height (12 px padding, chips 62 + 12 + Collect / Gamble 120 in the tallest state,
     // 12 + the one-line disclaimer 16), used to size the frame to its content (betting-768x1024.png)
-    dock: { minH: 390, fitH: 246, chip: 40, gapY: 12, inputH: 40, actH: 32, mainH: 56 },
+    dock: { minH: 390, fitH: 246, chip: 40, gapY: 12, actH: 32, mainH: 56 },
   },
   phone: {
     s: 0.85, disc: 40,
-    dock: { chip: 44, gapY: 8, inputH: 40, actH: 48, mainH: 48 },
+    dock: { chip: 44, gapY: 8, actH: 52, mainH: 52 },
   },
 };
 
@@ -83,8 +85,8 @@ export function computeLayout(W, H, fit = null) {
 
   let stage, rail = null, dock = null;
   if (!dockMode) {
-    rail = { ...B.rail, x: frame.x, y: frame.y, w: FRAME.rail, h: bodyH };
-    const gx = frame.x + FRAME.rail + FRAME.divider;
+    rail = { ...B.rail, x: frame.x, y: frame.y, h: bodyH };
+    const gx = frame.x + rail.w + FRAME.divider;
     stage = { x: gx, y: frame.y, w: frame.x + frame.w - gx, h: bodyH };
   } else {
     stage = { x: frame.x, y: frame.y, w: frame.w, h: 0 };
@@ -173,7 +175,7 @@ export function layoutVars(L) {
   };
   const c = L.rail || L.dock;
   Object.assign(v, {
-    '--chip': `${c.chip}px`, '--gap-y': `${c.gapY}px`, '--rail-pad': `${c.pad || 0}px`, '--input-h': `${c.inputH}px`,
+    '--chip': `${c.chip}px`, '--gap-y': `${c.gapY}px`, '--rail-pad': `${c.pad || 0}px`,
     '--act-h': `${c.actH}px`, '--main-h': `${c.mainH}px`,
   });
   return v;

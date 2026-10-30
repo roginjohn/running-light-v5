@@ -13,14 +13,14 @@ const CSS = readFileSync(new URL('../../src/styles/tokens.css', import.meta.url)
 
 test('v3 contrast pairs (tokens.md §1 + legacy v2 names) all meet their WCAG ratio', () => {
   const checks = contrastChecks(T);
-  assert.equal(checks.length, 67); // v5 batch 4: the old tier pairs became six tiers on each surface, plus blank and chip pairs
+  assert.equal(checks.length, 89); // v5 batch 4: six tiers on each surface, plus blank and chip pairs; batch 5: tier spot pairs, faded spot pairs, Start hint
   for (const c of checks) assert.ok(c.pass, `${c.name}: ${c.ratio} < ${c.need}`);
 });
 
 test('v3 colour, font, type, space, radius and border match docs/design-v3/tokens.json', () => {
   for (const k of ['font', 'type', 'space', 'radius', 'border', 'shadow', 'paytable', 'rules']) assert.deepEqual(T[k], DOC[k], k);
-  // v5 batch 4: the v3 tier colours became six v5 tiers; blank square and 100 / 500 chip tokens were added
-  const v3Only = /^tier-(24|96|480|960|1920)$/, v5Only = /^(tier-(5|10|20|50|100|200)|tile-blank(-hatch|-edge)?|chip-(100|500))$/;
+  // v5 batch 4: the v3 tier colours became six v5 tiers; blank square and 100 / 500 chip tokens were added; batch 5: the losing spot fade
+  const v3Only = /^tier-(24|96|480|960|1920)$/, v5Only = /^(tier-(5|10|20|50|100|200)|tile-blank(-hatch|-edge)?|chip-(100|500)|spot-lost-opacity)$/;
   const keep = (o, drop) => Object.fromEntries(Object.entries(o).filter(([k]) => !drop.test(k)));
   assert.deepEqual(keep(T.color, v5Only), keep(DOC.color, v3Only), 'color');
 });

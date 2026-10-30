@@ -434,7 +434,7 @@ test('E1.7/B8 key map: G gamble, Enter collect, R/W pick in modal, Space activat
   assert.deepEqual(mapKey({ key: 'ArrowRight' }, { phase: 'GAMBLE' }).action, { type: 'PICK', colour: 'white' });
   assert.deepEqual(mapKey({ key: 'Enter' }, { phase: 'GAMBLE', focus: { kind: 'button' } }).action, { type: 'COLLECT' });
   assert.deepEqual(mapKey({ key: ' ' }, { phase: 'GAMBLE', focus: { kind: 'button' } }), { kind: 'activate' });
-  assert.deepEqual(mapKey({ key: 'r' }, { phase: 'BETTING' }).action, { type: 'REBET' });
+  assert.equal(mapKey({ key: 'r' }, { phase: 'BETTING' }), null, 'v5: no Rebet key');
   assert.deepEqual(mapKey({ key: ' ' }, { phase: 'BETTING', focus: { kind: 'chip' } }), { kind: 'activate' });
   assert.deepEqual(mapKey({ key: ' ' }, { phase: 'BETTING', focus: { kind: 'tier', tier: 5 } }).action, { type: 'START' });
   assert.deepEqual(mapKey({ key: 'Backspace' }, { phase: 'BETTING', focus: { kind: 'tier', tier: 5 } }).action, { type: 'REMOVE_BET', tier: 5 });

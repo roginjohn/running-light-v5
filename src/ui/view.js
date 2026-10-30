@@ -1,12 +1,9 @@
 // v3 view: pure functions from (engine state, UI state, derived context, layout) to HTML strings per region.
 // No outcome logic here: every number shown comes from the engine state (stored round) or simple display arithmetic.
-import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, pRound, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MIN_BET, REFILL_AMOUNT } from '../engine/config.js';
-import { totalOf } from '../engine/bets.js';
-// TEMPORARY (Batch 2 adapter, removed in Batch 5): tier-keyed bets shown on the v3 square board.
-import { MAX_PER_TIER, TOP_TIER, betOn, tierCls, squareLabel } from './adapter.js';
+import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, pRound, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MAX_PER_TIER, MIN_BET, REFILL_AMOUNT, TOASTS } from '../engine/config.js';
+import { sameBets } from '../engine/bets.js';
 import { icon, chipFace, v3icon, v3mark } from './icons.js';
-import { halveBets, doubleBets } from './betscale.js';
-import { winners, lightClass, bigMult, bigValue, bigResult } from './track.js';
+import { SPOT_ORDER, lightOdds, betOn, winners, lightClass, bigMult, bigValue, bigResult } from './track.js';
 
 export const fmt = (n) => Number(n).toLocaleString('en-US');
 const px = (v) => `${Math.round(v * 100) / 100}px`;
@@ -18,6 +15,10 @@ const cap = (c) => c[0].toUpperCase() + c.slice(1);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 export const ODDS = Object.fromEntries(TIERS.map((t) => [t, `1 in ${fmt(Math.round(1 / pRound(t)))}`]));
+
+const TOP_TIER = TIERS[TIERS.length - 1];
+const tierCls = (m) => m || 'blank'; // colour class suffix (styles.css .q5 / .k5 …); blank squares get "blank"
+const squareLabel = (n) => (MULT[n] ? `${MULT[n]}x` : '–');
 
 // ------------------------------------------------------------------ derived UI mode
 /** bet | locked | offer | ingamble | payout | paused */
@@ -33,7 +34,7 @@ export function modeOf(s, ui) {
   }
 }
 
-export { winners, lightClass, bigMult, bigValue, bigResult };
+export { SPOT_ORDER, winners, lightClass, bigMult, bigValue, bigResult };
 
 // ------------------------------------------------------------------ page frame (v3 batch 2)
 /** Frame body, rail fill with its 1 px divider, and the bottom-bar fill. Static per layout (no per-state changes). */
@@ -82,15 +83,9 @@ function chipRow(s, c, keys) {
   }).join('')}</div>`;
 }
 
-/** Bet field: the TOTAL bet on the board, and 1/2 · x2 that scale every square (clamped by ui/betscale.js). */
-export function betField(s, c) {
-  const off = c.mode !== 'bet' || !c.canBet || !c.total;
-  const half = off || !halveBets(s.bets).changed;
-  const dbl = off || !doubleBets(s.bets, s.balance).changed;
-  const hint = c.total ? `${c.count} tier${c.count === 1 ? '' : 's'} · ${fmt(c.total)} / ${fmt(MAX_PER_ROUND)} per round` : `${MIN_BET}–${fmt(MAX_PER_TIER)} per tier · ${fmt(MAX_PER_ROUND)} per round`;
-  return `<div class="grp"><div class="rhead"><span>Bet amount</span></div>
-    <div class="betin${off ? ' off' : ''}"><span class="coin" aria-hidden="true"></span><output class="v" data-role="total" aria-label="Total bet ${c.total} credits">${fmt(c.total)}</output><button class="sc hit" data-id="btn-half" aria-label="Halve every bet (minimum 1 per tier)"${dis(half)}>1/2</button><button class="sc hit" data-id="btn-double" aria-label="Double every bet (maximum ${MAX_PER_TIER} per tier, ${MAX_PER_ROUND} per round)"${dis(dbl)}>x2</button></div>
-    <div class="hint" data-role="bet-hint">${hint}</div></div>`;
+/** Total bet card: "190 / 1,000" and the limit per spot (tiers/SPEC.md §2.7). Phones show the total on Start only. */
+export function totalCard(c) {
+  return `<div class="tbet"><span class="k">Total bet</span><output class="v" data-role="total" aria-label="Total bet ${c.total} of ${MAX_PER_ROUND} credits"><b>${fmt(c.total)}</b> / ${fmt(MAX_PER_ROUND)}</output><span class="k rl" data-role="bet-hint">Max ${fmt(MAX_PER_TIER)} per spot</span></div>`;
 }
 
 export function lastWin(s, ui, c) {
@@ -146,20 +141,17 @@ export function topRow(s, ui, L) {
     <div class="tg lastbets" data-role="last-bets" aria-label="Last bets, newest first: ${bets.length ? bets.map((e) => e.t).join(', ') : 'none yet'}"><span class="k">Last bets:</span><span class="tps">${lbs || '<span class="none">None yet</span>'}</span></div></div>`;
 }
 
-function actionRow(s, c, phone = false) {
+function actionRow(s, c) {
   const off = c.mode !== 'bet' || !c.canBet;
-  const undoDis = off || !s.undo.length, clearDis = off || !c.total;
-  const rebetDis = off || !!c.rebetWhy || c.rebetSame;
-  const lastT = s.lastBets ? totalOf(s.lastBets) : 0;
-  const one = (id, label, key, d, hi, title) => `<button class="btn sec hit${hi ? ' hi' : ''}" data-id="${id}" aria-label="${label} (key ${key})"${title ? ` title="${esc(title)}"` : ''}${dis(d)}><span>${label}</span></button>`;
-  return `<div class="acts">${one('btn-undo', 'Undo', 'Z', undoDis)}${one('btn-clear', 'Clear', 'C', clearDis)}${one('btn-rebet', c.ghosts && !c.rebetWhy && !phone ? `Rebet ${lastT}` : 'Rebet', 'R', rebetDis, c.ghosts && !rebetDis, c.rebetWhy && s.lastBets ? c.rebetWhy : '')}</div>`;
+  const one = (id, label, key, d) => `<button class="btn sec hit" data-id="${id}" aria-label="${label} (key ${key})"${dis(d)}><span>${label}</span></button>`;
+  return `<div class="acts">${one('btn-undo', 'Undo', 'Z', off || !s.undo.length)}${one('btn-clear', 'Clear', 'C', off || !c.total)}</div>`;
 }
 
 const gambleWhyText = (gw) => (gw === 'cap' ? `Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)}` : gw === 'max' ? 'No gambles left for this win' : '');
 
 /** Primary button(s): Start (blue); after a win the Collect (green, dark text) + Gamble ×2 (blue) stack; in the
  *  gamble, Gamble on <colour> (blue) + Collect, which is locked (outline) while the disc flips. */
-function mainButtons(s, ui, c, dock, L) {
+function mainButtons(s, ui, c, dock) {
   const m = c.mode;
   const r = s.round;
   const st = (inner, d = true) => `<button class="btn pri stack hit" data-id="btn-start"${dis(d)}>${inner}</button>`;
@@ -189,11 +181,15 @@ function mainButtons(s, ui, c, dock, L) {
   if (m === 'payout') return st('<span>Paying…</span><span class="sub">tap to skip the count-up</span>');
   if (m === 'paused') return st('<span>Paused</span><span class="sub">see the message</span>');
   if (!c.total) return st('<span>Place a bet</span><span class="sub">then press START</span>');
-  return st(`<span>Start</span><span class="sub">${fmt(c.total)}${L.phone ? '' : ' credits'} on ${c.count} tier${c.count === 1 ? '' : 's'}${dock ? '' : ' · Space'}</span>`, !c.canBet || ui.startLocked);
+  // bets persist between rounds: the same bets on the board replay as "Start again" (there is no Rebet)
+  const again = r && r.settled && sameBets(s.bets, r.bets);
+  // kept bets can exceed the balance after a loss: Start is off until they fit (phones show the total on Start only)
+  if (c.total > s.balance) return st(`<span>${again ? 'Start again' : 'Start'} · ${fmt(c.total)}</span><span class="sub short" data-role="start-hint">${TOASTS.credits}</span>`);
+  return st(`<span>${again ? 'Start again' : 'Start'}</span><span class="sub">${fmt(c.total)} on ${plural(c.count, 'spot')}</span>`, !c.canBet || ui.startLocked);
 }
 
 const disclaimer = () => `<p class="rdisc"><b>Play credits only.</b> No real money value. Free refill to ${fmt(REFILL_AMOUNT)} whenever you run out.</p>`;
-const chipGroup = (s, c, keys) => `<div class="grp"><div class="rhead"><span>Chip value</span></div>${chipRow(s, c, keys)}</div>`;
+const chipGroup = (s, c, keys) => `<div class="grp"><div class="rhead"><span>Chip</span></div>${chipRow(s, c, keys)}</div>`;
 
 export function controls(s, ui, c, L) {
   // win offer and gamble (win-gamble-offer.png, gamble-flip.png): the note goes above the Collect / Gamble stack
@@ -204,26 +200,26 @@ export function controls(s, ui, c, L) {
     const r = L.rail;
     const note = railNote(s, ui, c);
     return `<div class="rail" role="region" aria-label="Bet controls" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(r.h)}">
-      ${betField(s, c)}${chipGroup(s, c, true)}${result ? note : ''}${mainButtons(s, ui, c, false, L)}${acts}${result ? '' : note}
+      ${chipGroup(s, c, true)}${totalCard(c)}${result ? note : ''}${acts}${mainButtons(s, ui, c, false)}${result ? '' : note}
       <div style="flex:1"></div>${disclaimer()}</div>`;
   }
   // phones: one row of 44 px chips, then the actions (the total is on Start's second line)
   if (L.phone) {
     const d = L.dock;
     return `<div class="dock ph" role="region" aria-label="Bet controls" style="left:${px(d.x)};top:${px(d.y)};width:${px(d.w)};height:${px(d.h)}">
-      ${chipRow(s, c, false)}<div class="phact">${result ? '' : actionRow(s, c, true)}${mainButtons(s, ui, c, true, L)}</div></div>`;
+      ${chipRow(s, c, false)}<div class="phact">${acts}${mainButtons(s, ui, c, true)}</div></div>`;
   }
   // tablet portrait: the rail as a 2-column block (left: bet field, note; right: chips, button, actions)
   const d = L.dock;
   return `<div class="dock" role="region" aria-label="Bet controls" style="left:${px(d.x)};top:${px(d.y)};width:${px(d.w)};height:${px(d.h)};padding:${DOCK_PAD}px 0">
-      <div class="dcol">${betField(s, c)}${railNote(s, ui, c)}</div>
-      <div class="dcol">${chipGroup(s, c, false)}${mainButtons(s, ui, c, true, L)}${acts}</div>
+      <div class="dcol">${totalCard(c)}${railNote(s, ui, c)}</div>
+      <div class="dcol">${chipGroup(s, c, false)}${acts}${mainButtons(s, ui, c, true)}</div>
       ${disclaimer()}</div>`;
 }
 
 // ------------------------------------------------------------------ tiles
 // v5 batch 4: the ring is display-only: plain <div>s with no focus, hover or bet target, and no bet badges (bets show
-// on the centre's tier buttons). The static part is built once per tile; per state only the tile's class list and
+// on the centre's tier spots). The static part is built once per tile; per state only the tile's class list and
 // its .dyn child (Double Run marker) change, and during a light run only the class list. A blank square is marked
 // three ways, not by colour alone: hatching, a dashed border and the no-win glyph, plus "No win" where it fits.
 export function tileStatic(n) {
@@ -286,7 +282,6 @@ export function centreModel(s, ui, c) {
     const won = w1 && w2 ? `Double Run · won ${fmt(r.baseWin)}` : `#${w1 || w2} · ${MULT[w1 || w2]}x · won ${fmt(r.baseWin)}`;
     return { ...M, gamble: true, status: ui.gambleLoss ? ['coral', 'Gamble lost'] : ['on', 'Gamble'], won };
   }
-  M.on = new Set([w1, w2].filter(Boolean).map((n) => MULT[n]));
   if (m === 'offer') {
     const status = MULT[w1] === TOP_TIER || MULT[w2] === TOP_TIER ? ['mint', 'Jackpot'] : r.doubleRun ? ['mint', 'Double Run win'] : ['mint', 'Win'];
     let sub;
@@ -304,8 +299,7 @@ export function centreModel(s, ui, c) {
     const sub = r.doubleRun ? `The lights stopped on #${r.s1} and #${r.s2}. Your bets are still on the board.` : `The light stopped on #${r.s1} (${MULT[r.s1] ? `${MULT[r.s1]}x` : 'blank'}). Your bets are still on the board. Press <b>Start</b> to play them again.`;
     return { ...M, status: ['coral', 'No win'], headline: 'No win this time', sub, cards };
   }
-  if (c.ghosts) return { ...M, status: ['idle', 'Betting open'], headline: 'Place your bets', sub: `Last round’s bets are shown as outlines. Press Rebet to place all ${totalOf(s.lastBets)} again.` };
-  return { ...M, status: ['idle', 'Betting open'], headline: 'Place your bets', sub: 'Pick a chip, tap a tier to bet on it, then press <b>Start</b>.' };
+  return { ...M, status: ['idle', 'Betting open'], headline: 'Pick a tier spot', sub: 'Win if the light stops on any square of that tier.' };
 }
 
 /** Navy "Double or nothing" band under a win (win-gamble-offer.png): the 50/50, both outcomes, gambles left. */
@@ -373,22 +367,29 @@ function gamblePanel(s, ui, c, L) {
     <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is turned off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.`}</div>`;
 }
 
-/** TEMPORARY (replaced by the six tier spots in Batch 5): with the ring display-only, the pays row is where bets go.
- *  Click / Enter adds the chip, right-click / Shift+click / Backspace removes it. */
-function tierButtons(s, c, on) {
+/** The six tier spots, in the ring's centre (tiers/SPEC.md §2.2–2.3): multiplier, "1 in X" per light, square count
+ *  and the bet. Click / Enter adds the chip, right-click / Shift+click / Backspace removes it. A bet adds a blue
+ *  border; once the stops are shown a winning spot is green with "Won N" and a spot that bet and lost fades. While a
+ *  round runs the spots are a compact strip (multiplier and bet only) beside the running display. */
+function tierSpots(s, ui, c, compact) {
+  const r = s.round;
   const off = c.mode !== 'bet' || !c.canBet;
-  return `<div class="pays">${TIERS.map((m) => {
-    const bet = s.bets[m] || 0;
-    const ghost = !bet && c.ghosts && s.lastBets ? s.lastBets[m] || 0 : 0;
-    const cls = `${on.has(m) ? ' on' : ''}${bet ? ' has' : ''}${ghost ? ' ghost' : ''}`;
-    const foot = bet ? `Bet ${fmt(bet)}` : ghost ? `Last ${fmt(ghost)}` : `${COUNT_BY_TIER[m]} square${COUNT_BY_TIER[m] > 1 ? 's' : ''}`;
-    return `<button class="pay hit k${m}${cls}" data-id="tier-${m}" aria-label="${m}x tier, ${COUNT_BY_TIER[m]} square${COUNT_BY_TIER[m] > 1 ? 's' : ''}, bet ${bet}"${dis(off)}><b>${m}x</b><i>${foot}</i></button>`;
+  const { w1, w2 } = winners(s, ui);
+  const shown = ['offer', 'payout'].includes(c.mode) || (ui.showLastStop && r && sameBets(s.bets, r.bets));
+  return `<div class="spots${compact ? ' compact' : ''}" role="group" aria-label="Tier bet spots">${SPOT_ORDER.map((m) => {
+    const bet = (c.mode !== 'bet' && r ? r.bets[m] : s.bets[m]) || 0;
+    const won = [w1, w2].filter((n) => n && MULT[n] === m).length * m * bet;
+    const cls = `${bet ? ' has' : ''}${won ? ' won' : bet && shown ? ' lost' : ''}`;
+    const squares = plural(COUNT_BY_TIER[m], 'square');
+    const said = won ? `won ${won}` : bet ? `your bet ${bet}` : 'no bet';
+    const foot = won ? `Won <b>${fmt(won)}</b>` : bet ? `Bet <b>${fmt(bet)}</b>` : 'No bet';
+    return `<button class="spot hit k${m}${cls}" data-id="tier-${m}" aria-label="${m}x spot, ${lightOdds(m)} per light, ${squares}, ${said}"${dis(off)}><span class="sm">${m}x</span><span class="so">${lightOdds(m)}</span><span class="sq">${squares}</span><span class="sb">${foot}</span></button>`;
   }).join('')}</div>`;
 }
 
-/** Centre (v3 batches 4–5): status pills, the big multiplier, a flat title and sub line, the pays row (the won
- *  tiers in green), result cards, and the navy gamble band; or the gamble panel. The number's text is written by
- *  the controller (app.js paintBig), so a light step never rebuilds this region. */
+/** Centre: status pills, a flat title and sub line and the six tier spots while betting is open (betting mock); during
+ *  a round also the big multiplier, whose text is written by the controller (app.js paintBig), so a light step never
+ *  rebuilds this region, plus the result cards and the navy gamble band; or the gamble panel. */
 export function centre(s, ui, c, L) {
   const M = centreModel(s, ui, c);
   const I = L.inner;
@@ -396,16 +397,16 @@ export function centre(s, ui, c, L) {
   const st = `<span class="cp ${M.status[0]}" data-role="status">${M.status[1]}</span>`;
   if (M.gamble) return box(' gam', `<div class="cps">${st}<span class="cp mint">${M.won}</span></div>${gamblePanel(s, ui, c, L)}`);
   const dr = `<span class="cp${M.dr ? ' on' : ''}">${M.dr ? 'Double Run on' : `Double Run · 1 in ${DOUBLE_RUN_ONE_IN}`}</span>`;
+  const txt = `<div class="ctxt" aria-live="polite"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>`;
+  const legend = `<div class="bkey"><i class="sw" aria-hidden="true"></i>Blank square · no win · ${BLANK_COUNT} of 50</div>`;
+  if (c.mode === 'bet') return box(' open', `<div class="cps">${st}${dr}</div>${txt}${tierSpots(s, ui, c, false)}${legend}`);
   const B = bigResult(s, ui);
-  const on = M.on || new Set();
   const busy = (M.cards && M.cards.length) || M.band;
-  // phones have no room for the buttons and the legend beside the result cards
-  const pays = L.phone && busy ? '' : tierButtons(s, c, on);
-  const legend = busy && (L.phone || I.h < 560) ? '' : `<div class="bkey"><i class="sw" aria-hidden="true"></i>Blank square · no win · ${BLANK_COUNT} of 50</div>`;
+  // phones have no room for the spots and the legend beside the result cards
+  const spots = L.phone && busy ? '' : tierSpots(s, ui, c, true);
   return box('', `<div class="cps">${st}${dr}</div>
     <div class="bigrow"><div class="big${B.win ? ' win' : ''}" aria-hidden="true"><span data-role="big"></span><small>x</small></div>${B.extra ? `<div class="big2" aria-hidden="true">+ ${B.extra}<small>x</small></div>` : ''}</div>
-    <div class="ctxt" aria-live="polite"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>
-    ${pays}${M.cards && M.cards.length ? `<div class="cards">${M.cards.join('')}</div>` : ''}${M.band ? gambleBand(s, c) : ''}${legend}`);
+    ${txt}${spots}${M.cards && M.cards.length ? `<div class="cards">${M.cards.join('')}</div>` : ''}${M.band ? gambleBand(s, c) : ''}${busy && (L.phone || I.h < 560) ? '' : legend}`);
 }
 
 // ------------------------------------------------------------------ bottom bar (v3 batch 2)
@@ -528,7 +529,7 @@ function settingsBody(s, ui) {
   const tg = (id, on, label, d = false) => `<button class="tgl hit${on ? ' on' : ''}" data-id="${id}" role="switch" aria-checked="${on}" aria-label="${label}"${dis(d)}><i></i></button>`;
   const sl = (id, key, label) => `<span class="sl"><span class="slider hit" data-id="${id}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${st[key]}"><i style="width:${st[key]}%"></i><b style="left:${st[key]}%"></b></span><span class="v">${st[key]}</span></span>`;
   const row = (a, sub, ctl, off = false) => `<div class="srow${off ? ' off' : ''}"><span><b>${a}</b><br>${sub}</span>${ctl}</div>`;
-  const keys = [['Space', 'Start'], ['1–5', 'Chip'], ['Enter · Backspace', 'Add · remove on a tier'], ['Z · C · R', 'Undo · Clear · Rebet'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
+  const keys = [['Space', 'Start'], ['1–7', 'Chip'], ['Enter · Backspace', 'Add · remove on a spot'], ['Z · C', 'Undo · Clear'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
   let h = '';
   if (ui.settingsReset) h += `<p class="inote" data-role="settings-reset">Your saved settings couldn’t be read, so they were reset to the defaults. Your credits and rounds were not affected.</p>`;
   h += row('Sound', 'Effects for the light, wins and gamble · M', tg('tg-mute', !st.mute, 'Sound'));
@@ -536,7 +537,7 @@ function settingsBody(s, ui) {
   h += row('Sound effects', 'Clicks, light, wins', sl('sl-sfx', 'sfx', 'Sound effects volume'));
   h += row('Reduced motion', 'Short light run, no flip animation', tg('tg-rm', st.reducedMotion, 'Reduced motion'));
   h += row('Turbo', 'Placeholder – pending approval', tg('tg-turbo', false, 'Turbo (placeholder, not available)', true), true);
-  h += `<h4 class="isub">Keys</h4><table class="ikeys">${keys.map(([a, b]) => `<tr><td>${a.split(' · ').map(kc).join(' ')}</td><td>${b}</td></tr>`).join('')}</table>`;
+  h += `<div class="keylist"><h4 class="isub">Keys</h4><table class="ikeys">${keys.map(([a, b]) => `<tr><td>${a.split(' · ').map(kc).join(' ')}</td><td>${b}</td></tr>`).join('')}</table></div>`;
   return h;
 }
 
@@ -556,7 +557,7 @@ function paytableBody() {
 /** Help: the four steps, how the gamble really works (engine rules: 50/50 drawn and saved when Gamble is
  *  pressed, ×2 or lose the win, max 3 per win, off if the doubled win would exceed the 300,000 cap), and the play-credits note. */
 function helpBody() {
-  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Click a tier in the centre to bet on it, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
+  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Tap a tier spot in the centre to bet on it, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
   let h = `<ol class="isteps">${steps.map(([a, b], i) => `<li><span class="n">${i + 1}</span><span><b>${a}</b><br>${b}</span></li>`).join('')}</ol>`;
   h += `<h4 class="isub">How the gamble works</h4><ul class="igamble" data-role="help-gamble">
     <li>After a win, press <b>Gamble ×2</b>, pick <b>red</b> or <b>white</b>, then press Gamble on your colour.</li>
@@ -577,7 +578,7 @@ export function warmSamples(s, L) {
   const one = (phase, u = {}, g = { pick: null, revealing: false }, r = round) => {
     const st = { ...s, phase, round: r, gamble: g, bets: {}, lastBets: r.bets };
     const ux = { ...ui, ...u };
-    const c = { mode: modeOf(st, ux), gambleWhy: null, total: 0, count: 0, canBet: false, rebetWhy: null, rebetSame: false, ghosts: false };
+    const c = { mode: modeOf(st, ux), gambleWhy: null, total: 0, count: 0, canBet: false };
     return centre(st, ux, c, L) + controls(st, ux, c, L);
   };
   const won = { ...round, gambles: [{ pick: 'red', result: 'red' }], currentWin: 200 };
