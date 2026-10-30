@@ -1,8 +1,8 @@
 // v5 batch 7: accessibility checks on the rendered game (dev spec §4). Contrast, type sizes and tap targets are measured
 // in every state at the three spec viewports; the live region, reduced motion and keyboard are driven for real.
-import test, { before, after } from 'node:test';
+import test, { before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, launch, openGame, waitPhase, state, clickId } from './harness.js';
+import { startServer, launch, openGame, closeLeftPages, waitPhase, state, clickId } from './harness.js';
 import { setup, playTo, dispatch, settle, force, timeToPhase } from './scenes.js';
 import { SCENES, AUDIT_ONLY, VIEWPORTS, audit, aria, layoutCheck, pause } from './a11y-audit.js';
 
@@ -11,6 +11,7 @@ before(async () => {
   ({ server, url } = await startServer());
   browser = await launch();
 });
+afterEach(closeLeftPages);
 after(async () => {
   await browser.close();
   server.close();
@@ -49,6 +50,23 @@ for (const [w, h, touch] of VIEWPORTS) {
     assert.deepEqual(problems, []);
   });
 }
+
+test('tablet 768x1024: every control is at least 44x44 px in every state, and every kind of control was measured', async () => {
+  const seen = new Set(), small = [];
+  for (const [name, scene] of Object.entries({ ...SCENES, ...AUDIT_ONLY })) {
+    const page = await open({ width: 768, height: 1024, touch: true });
+    await scene(page);
+    await pause();
+    const m = await page.evaluate(() => [...document.querySelectorAll('button, [role="button"], [role="radio"], [role="switch"], [role="slider"], [role="tab"], .hit')].filter((e) => !e.closest('.warm, [inert]') && e.getClientRects().length).map((e) => { const b = e.getBoundingClientRect(); return [e.dataset.id, b.width, b.height]; }));
+    for (const [id, w, h] of m) {
+      seen.add(id);
+      if (w < 44 || h < 44) small.push(`${name}: ${id} ${w}x${h}`);
+    }
+    await finish(page);
+  }
+  assert.deepEqual(small, []);
+  for (const id of ['chip-1', 'chip-500', 'tier-200', 'btn-undo', 'btn-clear', 'btn-start', 'btn-collect', 'btn-gamble', 'pick-red', 'pick-white', 'btn-flip', 'icon-sound', 'icon-settings', 'icon-stats', 'icon-results', 'close', 'tab-paytable', 'tg-mute', 'sl-music', 'start-play', 'm-refill']) assert.ok(seen.has(id), `${id} was measured`);
+});
 
 test('roles: one polite live region, every control named, the ring hidden and not focusable, spots and chips grouped, dialogs modal', async () => {
   const page = await open();

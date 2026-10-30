@@ -384,7 +384,7 @@ svg { display: block; }
 #app[data-bp="phone"] .bbar { grid-template-columns: 1fr auto; padding: 0; }
 #app[data-bp="phone"] .bbar .bb-c { display: none; }
 #app[data-bp="phone"] .bbar .bb-l { gap: 0; }
-#app[data-bp="phone"] .bbar .ibtn { width: 44px; height: 44px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .bbar .ibtn { width: 44px; height: 44px; }
 .dock.ph { display: flex; flex-direction: column; gap: var(--gap-y); padding: 8px 12px 10px; background: var(--c-bg-bottombar); }
 .dock.ph .chip .cv { font-size: 13px; }
 .phact { display: flex; gap: var(--sp-2); }
@@ -407,12 +407,13 @@ svg { display: block; }
 #app[data-bp="phone"] .spots:not(.compact) .so { font-size: 13px; line-height: 16px; }
 #app[data-bp="phone"] .spots:not(.compact) .sb { font-size: 13px; line-height: 18px; }
 #app[data-bp="phone"] .isec { padding: var(--sp-4); }
-#app[data-bp="phone"] .ibtn.x { width: 44px; height: 44px; }
-#app[data-bp="phone"] .itabs button { height: 44px; }
-#app[data-bp="phone"] .tgl { width: 44px; height: 44px; }
-#app[data-bp="phone"] .tgl::before { inset: 12px 4px; }
-#app[data-bp="phone"] .slider { height: 44px; }
-#app[data-bp="phone"] .srow2 .btn { height: 44px; }
+/* touch sizes for dialogs: phones and, since v5 batch 8, tablet portrait */
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .ibtn.x { width: 44px; height: 44px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .itabs button { height: 44px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .tgl { width: 44px; height: 44px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .tgl::before { inset: 12px 4px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .slider { height: 44px; }
+:is(#app[data-bp="phone"], #app[data-bp="tablet-portrait"]) .srow2 .btn { height: 44px; }
 #app[data-bp="phone"] :is(.kpis, .plims) { grid-template-columns: 1fr; }
 #app[data-bp="phone"] .gpanel { gap: 6px; padding: var(--sp-2); }
 #app[data-bp="phone"] .ghead .pips { display: none; }

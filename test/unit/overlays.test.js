@@ -40,7 +40,7 @@ test('the v2 overlay styles are gone (modal, tabs, toggle, notice, field, bulb r
 test('768x1024: the frame hugs track + dock + bar and is centred (betting-768x1024.png); the dock fits its content', () => {
   const L = computeLayout(768, 1024);
   assert.equal(L.dock.h, L.dock.fitH);
-  assert.equal(L.frame.h, L.stage.y - L.frame.y + L.stage.h + L.dock.h + 12 + 40);
+  assert.equal(L.frame.h, L.stage.y - L.frame.y + L.stage.h + L.dock.h + 12 + 44);
   assert.ok(L.frame.h < 1024 - 32, `frame ${L.frame.h} shorter than the screen`);
   assert.ok(Math.abs(L.frame.y - (1024 - L.frame.h - L.frame.y)) <= 1, 'centred vertically');
   assert.equal(L.bar.y + L.bar.h, L.frame.y + L.frame.h);
