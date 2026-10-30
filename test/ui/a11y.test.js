@@ -68,6 +68,19 @@ test('tablet 768x1024: every control is at least 44x44 px in every state, and ev
   for (const id of ['chip-1', 'chip-500', 'tier-200', 'btn-undo', 'btn-clear', 'btn-start', 'btn-collect', 'btn-gamble', 'pick-red', 'pick-white', 'btn-flip', 'icon-sound', 'icon-settings', 'icon-stats', 'icon-results', 'close', 'tab-paytable', 'tg-mute', 'sl-music', 'start-play', 'm-refill']) assert.ok(seen.has(id), `${id} was measured`);
 });
 
+test('tablet 768x1024: the credits line clears the total card, with a win pending too', async () => {
+  const page = await open({ width: 768, height: 1024, touch: true });
+  const clear = () => page.evaluate(() => {
+    const c = document.querySelector('.credits').getBoundingClientRect(), t = document.querySelector('.tbet').getBoundingClientRect();
+    return c.bottom <= t.top;
+  });
+  await SCENES.betting(page);
+  assert.ok(await clear(), 'betting');
+  await playTo(page, 13);
+  assert.ok(await clear(), 'win pending');
+  await finish(page);
+});
+
 test('roles: one polite live region, every control named, the ring hidden and not focusable, spots and chips grouped, dialogs modal', async () => {
   const page = await open();
   await setup(page, { balance: 10000, history: [], bets: { 200: 25 }, chip: 25 });

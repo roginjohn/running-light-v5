@@ -68,6 +68,7 @@ svg { display: block; }
 .rail { overflow: hidden; contain: layout paint; display: flex; flex-direction: column; gap: var(--gap-y); padding: var(--rail-pad); }
 .dock { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: var(--sp-6); row-gap: var(--gap-y); align-content: start; border-top: var(--b-hairline) solid var(--c-divider); }
 .dock .dcol { display: flex; flex-direction: column; gap: var(--gap-y); min-width: 0; }
+.dock .dcol:first-child { padding-top: 22px; } /* the credits line sits above the total card, level with the "Chip" label */
 .dock .rdisc { grid-column: 1 / -1; align-self: end; }
 .grp { display: flex; flex-direction: column; gap: 6px; flex: none; }
 .rhead { height: 16px; display: flex; align-items: center; white-space: nowrap; }
