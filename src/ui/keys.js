@@ -1,6 +1,6 @@
 // Keyboard map (spec B8 + B13 fix 2). Pure: maps a key event + context to an intent.
 // Intents: { kind: 'dispatch', action } | { kind: 'activate' } (press focused control) |
-//          { kind: 'focusTier', delta } | { kind: 'tab', delta } | { kind: 'slider', delta } | null
+//          { kind: 'focusTier', delta } | { kind: 'chipMove', delta } | { kind: 'tab', delta } | { kind: 'slider', delta } | null
 import { CHIPS } from '../engine/config.js';
 
 const NAV_KEYS = new Set(['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
@@ -69,6 +69,10 @@ export function mapKey(e, ctx) {
     if (k === 'Backspace') return { kind: 'dispatch', action: { type: 'REMOVE_BET', tier: focus.tier } };
     if (k === 'ArrowRight' || k === 'ArrowDown') return { kind: 'focusTier', delta: 1 };
     if (k === 'ArrowLeft' || k === 'ArrowUp') return { kind: 'focusTier', delta: -1 };
+  }
+  if (focus.kind === 'chip') { // a radiogroup: arrows move the selection
+    if (k === 'ArrowRight' || k === 'ArrowDown') return { kind: 'chipMove', delta: 1 };
+    if (k === 'ArrowLeft' || k === 'ArrowUp') return { kind: 'chipMove', delta: -1 };
   }
   if (k === ' ') return activateOr({ kind: 'dispatch', action: { type: 'START' } });
   if (k === 'Enter') return activateOr(null);

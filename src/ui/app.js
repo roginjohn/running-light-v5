@@ -5,10 +5,11 @@ import { computeLayout, layoutVars } from './layout.js';
 import { mapKey } from './keys.js';
 import { createAudio } from './audio.js';
 import { planFirstRunV2, planSecondRunV2, planFade, advance } from './lightplan.js';
-import { MULT, TIERS, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
+import { MULT, TIERS, CHIPS, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
 import { totalOf, countOf } from '../engine/bets.js';
 import { createCryptoRng } from '../engine/rng.js';
 import { recordTotal, loadTotals, saveTotals } from './bettotals.js';
+import { resultMessage, doubleRunMessage, gambleWonMessage, gambleLostMessage } from './announce.js';
 
 const REGIONS = ['frame', 'stage', 'track', 'centre', 'top', 'credits', 'bar', 'controls', 'toast', 'modal', 'start'];
 const GAME_REGIONS = ['credits', 'track', 'centre', 'top', 'bar', 'controls'];
@@ -114,7 +115,9 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     task.cancel = () => tasks.delete(task);
     return task;
   }
-  const reduced = () => game.state.settings.reducedMotion;
+  // The system setting always wins: a saved reducedMotion:false must not bring the motion back (dev spec §4).
+  const sysReduced = globalThis.matchMedia ? globalThis.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const reduced = () => game.state.settings.reducedMotion || !!(sysReduced && sysReduced.matches);
 
   // ------------------------------------------------------------ derived context
   function ctx() {
@@ -248,6 +251,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     if (s.phase === 'INIT') return;
     const c = ctx();
     ui.reducedNow = c.reduced;
+    ui.sysReduced = !!(sysReduced && sysReduced.matches);
     const want = (n) => !names || names.includes(n);
     if (want('credits')) {
       setRegion('credits', V.credits(s, ui, L));
@@ -274,7 +278,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     R.start.hidden = !ui.start;
     for (const n of GAME_REGIONS) R[n].inert = !!c.modal || ui.start;
     R.modal.inert = ui.start;
-    root.classList.toggle('reduced', !!s.settings.reducedMotion);
+    root.classList.toggle('reduced', c.reduced);
     root.classList.toggle('kbd', ui.ringOn);
   }
 
@@ -385,8 +389,10 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     ui.showLastStop = false;
     audio.play('sfx_start');
     const before = r.balanceBefore, after = r.balance;
-    ui.displayBalance = before;
-    tween(300, (x) => { ui.displayBalance = Math.round(before + (after - before) * x); paintCredits(); }, () => { ui.displayBalance = null; paintCredits(); });
+    if (!reduced()) { // reduced motion: no count-up
+      ui.displayBalance = before;
+      tween(300, (x) => { ui.displayBalance = Math.round(before + (after - before) * x); paintCredits(); }, () => { ui.displayBalance = null; paintCredits(); });
+    }
     const plan = reduced() ? planFade(r.s1) : planFirstRunV2(ui.lightIndex, r.s1, u01(), u01());
     announce(`Running. Credits ${V.fmt(before)} minus ${V.fmt(r.totalBet)} bet = ${V.fmt(after)}.`);
     runLight(plan, 'light1', () => game.dispatch({ type: 'LIGHT1_DONE' }));
@@ -397,7 +403,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     ui.light1 = null;
     audio.play('sfx_double_run_horn');
     render();
-    announce(`Double Run! A second light is running. Square ${r.s1} stays lit.`);
+    announce(doubleRunMessage(r));
     // banner: in 600 · hold 400 · out 300 (the headline stays as the mid Double Run copy)
     wait(reduced() ? 600 : 1300, () => {
       const plan = reduced() ? planFade(r.s2) : planSecondRunV2(r.s1, r.s2, u01(), u01());
@@ -420,7 +426,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         wait(2500, () => audio.duck(false));
       } else audio.play('sfx_win_small');
       renderStaged(() => { if (game.state.phase === 'GAMBLE_OFFER') focusId('btn-collect', ui.ringOn); });
-      announce(`You win ${V.fmt(r.currentWin)}. Collect or gamble.`);
+      announce(resultMessage(r, !game.gambleBlock()));
     } else {
       ui.showLastStop = true;
       audio.play('sfx_loss');
@@ -428,7 +434,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         const a = document.activeElement;
         if (!a || a === document.body || !root.contains(a) || a.getAttribute('aria-disabled') === 'true') focusId('btn-start', false);
       });
-      announce(`No win this time. The light stopped on square ${r.s1}${r.s2 ? ` and ${r.s2}` : ''}. Your bets are still on the board.`);
+      announce(resultMessage(r));
     }
   }
 
@@ -440,6 +446,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     ui.matchMsg = null;
     audio.play('sfx_drumroll');
     ui.flip = { final: false };
+    announce(`Flipping. If ${game.state.gamble.pick} lights, your win doubles.`);
     render(['centre', 'controls']);
     wait(reduced() ? 120 : FLIP_MS, () => {
       ui.flip = { final: true };
@@ -459,7 +466,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       const g = r.gambles[r.gambles.length - 1];
       audio.play('sfx_gamble_lose');
       ui.gambleLoss = { pick: g.pick, result: g.result, win: prevWin, flip: r.gambles.length, left: Math.round(GAMBLE_LOSS_MS / 1000) };
-      announce(`No match. ${g.result} lit. Your pick was ${g.pick}, so the ${V.fmt(prevWin)} gamble is lost. Your credits stay at ${V.fmt(s.balance)}.`);
+      announce(gambleLostMessage(g.result, g.pick, prevWin, s.balance));
       const t0 = now();
       lossTask = addTask((t) => {
         if (!ui.gambleLoss) return true;
@@ -481,7 +488,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       ui.matchMsg = { colour: g.result };
       const target = r.currentWin;
       if (!reduced()) tween(500, (x) => { ui.displayWin = Math.round(prevWin + (target - prevWin) * x); paintWin(); }, () => { ui.displayWin = null; paintWin(); });
-      announce(`Match! ${g.result} lit. Your win is now ${V.fmt(target)}. Gamble again or Collect.`);
+      announce(gambleWonMessage(g.result, target, !game.gambleBlock()));
       renderStaged(() => {
         const a = document.activeElement;
         if (game.state.phase === 'GAMBLE' && (!a || !root.contains(a) || a === document.body)) focusId('btn-collect', ui.ringOn);
@@ -565,6 +572,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       case 'GAMBLE_OPEN':
         audio.play('sfx_modal');
         ui.matchMsg = null;
+        announce('Double or nothing. Pick red or white, then gamble.');
         // the offer's Collect keeps focus until the gamble rail (same button) replaces it two frames later
         renderStaged(() => { if (game.state.phase === 'GAMBLE') focusId('btn-collect', ui.ringOn); });
         return;
@@ -894,6 +902,13 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         if (intent.focusPick && game.state.phase === 'GAMBLE' && !game.state.gamble.revealing) focusId(`pick-${intent.focusPick}`);
         break;
       }
+      case 'chipMove': {
+        const i = CHIPS.indexOf(s.chip);
+        const v = CHIPS[(i + intent.delta + CHIPS.length) % CHIPS.length];
+        game.dispatch({ type: 'SELECT_CHIP', value: v });
+        focusId(`chip-${v}`);
+        break;
+      }
       case 'focusTier': {
         const i = V.SPOT_ORDER.indexOf(Number(id.slice(5)));
         focusId(`tier-${V.SPOT_ORDER[(i + intent.delta + V.SPOT_ORDER.length) % V.SPOT_ORDER.length]}`);
@@ -916,6 +931,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     root.classList.toggle('kbd', ui.ringOn);
   });
 
+  if (sysReduced && sysReduced.addEventListener) sysReduced.addEventListener('change', () => render());
   window.addEventListener('error', (e) => fail(e.error || e.message));
   window.addEventListener('unhandledrejection', (e) => fail(e.reason));
   window.addEventListener('resize', () => { if (game.state.phase !== 'INIT') relayout(); });

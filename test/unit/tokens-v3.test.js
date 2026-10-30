@@ -13,14 +13,15 @@ const CSS = readFileSync(new URL('../../src/styles/tokens.css', import.meta.url)
 
 test('v3 contrast pairs (tokens.md §1 + legacy v2 names) all meet their WCAG ratio', () => {
   const checks = contrastChecks(T);
-  assert.equal(checks.length, 92); // v5 batch 4: six tiers on each surface, plus blank and chip pairs; batch 5: tier spot pairs, faded spot pairs, Start hint; batch 6: faded spot borders
+  assert.equal(checks.length, 113); // v5 batch 4: six tiers on each surface, plus blank and chip pairs; batch 5: tier spot pairs, faded spot pairs, Start hint; batch 6: faded spot borders; batch 7: chip fills on every surface, switch, slider, pips and disc cues, navy text
   for (const c of checks) assert.ok(c.pass, `${c.name}: ${c.ratio} < ${c.need}`);
 });
 
 test('v3 colour, font, type, space, radius and border match docs/design-v3/tokens.json', () => {
   for (const k of ['font', 'type', 'space', 'radius', 'border', 'shadow', 'paytable', 'rules']) assert.deepEqual(T[k], DOC[k], k);
   // v5 batch 4: the v3 tier colours became six v5 tiers; blank square and 100 / 500 chip tokens were added; batch 5: the losing spot fade
-  const v3Only = /^tier-(24|96|480|960|1920)$/, v5Only = /^(tier-(5|10|20|50|100|200)|tile-blank(-hatch|-edge)?|chip-(100|500)|spot-lost-opacity)$/;
+  // batch 7: the contrast audit lightened big-number, btn-disabled-text and chip-50, and named the navy panel's text colour
+  const v3Only = /^(tier-(24|96|480|960|1920)|big-number|btn-disabled-text|chip-50)$/, v5Only = /^(tier-(5|10|20|50|100|200)|tile-blank(-hatch|-edge)?|chip-(100|500)|spot-lost-opacity|big-number|btn-disabled-text|chip-50|text-on-navy)$/;
   const keep = (o, drop) => Object.fromEntries(Object.entries(o).filter(([k]) => !drop.test(k)));
   assert.deepEqual(keep(T.color, v5Only), keep(DOC.color, v3Only), 'color');
 });

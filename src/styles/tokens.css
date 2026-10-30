@@ -27,7 +27,7 @@
   --c-text-dim:#6b7580;
   --c-text-on-light:#0f1216;
   --c-text-on-green:#06210f;
-  --c-big-number:#6a7480;
+  --c-big-number:#808a96;
   --c-big-number-win:#e6eaee;
   --c-accent-blue:#0d6efd;
   --c-accent-blue-press:#0b5ed7;
@@ -37,7 +37,7 @@
   --c-accent-red:#dc2626;
   --c-accent-red-text:#f87171;
   --c-btn-disabled:#3a3f45;
-  --c-btn-disabled-text:#9aa2ab;
+  --c-btn-disabled-text:#b0b7bf;
   --c-scrim:rgba(15,18,22,0.78);
   --c-focus-ring:#ffffff;
   --c-tier-5:#9aa5b1;
@@ -46,6 +46,7 @@
   --c-tier-50:#f0abfc;
   --c-tier-100:#fde047;
   --c-tier-200:#ffffff;
+  --c-text-on-navy:#a9bbd6;
   --o-spot-lost:0.85;
   --c-tile-blank:#13181e;
   --c-tile-blank-hatch:#21262c;
@@ -58,7 +59,7 @@
   --c-chip-5:#dc2626;
   --c-chip-10:#0d6efd;
   --c-chip-25:#16a34a;
-  --c-chip-50:#4b5563;
+  --c-chip-50:#657080;
   --c-chip-100:#8548ef;
   --c-chip-500:#b45309;
   --c-chip-edge:#ffffff;
