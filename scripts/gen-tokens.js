@@ -14,7 +14,7 @@ const hex = (h) => { const v = h.replace('#', ''); return [0, 2, 4].map((i) => p
 const lin = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const lum = (h) => { const [r, g, b] = hex(h).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 export const contrastRatio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-export const REQUIRED = { body: 4.5, large: 3, 'non-text': 3, exempt: 0 };
+export const REQUIRED = { body: 4.5, large: 3, 'non-text': 3, ui: 3, exempt: 0 };
 
 /** Resolves "{color.x}" / "{radius.x}" / "{border.x}" / "{legacy.x}" references to raw values. */
 export function resolve(T, v) {
@@ -34,12 +34,12 @@ function cssRef(T, v) {
   });
 }
 
-/** Recomputes every contrast pair listed in the tokens. Returns [{ name, ratio, need, pass }]. */
+/** Recomputes every contrast pair listed in the tokens. Returns [{ name, kind, ratio, need, pass }]. */
 export function contrastChecks(tokens) {
   return tokens.contrast.map((c) => {
     const ratio = Math.round(contrastRatio(resolve(tokens, c.fg), resolve(tokens, c.bg)) * 100) / 100;
     const need = REQUIRED[c.kind];
-    return { name: c.name, ratio, need, pass: ratio >= need };
+    return { name: c.name, kind: c.kind, ratio, need, pass: ratio >= need };
   });
 }
 

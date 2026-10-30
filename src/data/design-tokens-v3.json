@@ -48,11 +48,15 @@
     "btn-disabled-text": "#9aa2ab",
     "scrim": "rgba(15,18,22,0.78)",
     "focus-ring": "#ffffff",
-    "tier-24": "#8a94a0",
-    "tier-96": "#c3cad2",
-    "tier-480": "#6ea8fe",
-    "tier-960": "#6ea8fe",
-    "tier-1920": "#ffffff",
+        "tier-5": "#9aa5b1",
+    "tier-10": "#5eead4",
+    "tier-20": "#6ea8fe",
+    "tier-50": "#f0abfc",
+    "tier-100": "#fde047",
+    "tier-200": "#ffffff",
+    "tile-blank": "#13181e",
+    "tile-blank-hatch": "#21262c",
+    "tile-blank-edge": "#6b7580",
     "gamble-red": "#dc2626",
     "gamble-red-edge": "#a51c1c",
     "gamble-white": "#f1f3f5",
@@ -62,6 +66,8 @@
     "chip-10": "#0d6efd",
     "chip-25": "#16a34a",
     "chip-50": "#4b5563",
+    "chip-100": "#8548ef",
+    "chip-500": "#b45309",
     "chip-edge": "#ffffff",
     "chip-text-dark": "#0f1216",
     "chip-text-light": "#ffffff"
@@ -407,30 +413,11 @@
       "chip-5-ink": "{color.chip-text-light}",
       "chip-10-ink": "{color.chip-text-light}",
       "chip-25-ink": "{color.text-on-green}",
-      "chip-50-ink": "{color.chip-text-light}"
+      "chip-50-ink": "{color.chip-text-light}",
+      "chip-100-ink": "{color.chip-text-light}",
+      "chip-500-ink": "{color.chip-text-light}"
     },
-    "tier": {
-      "24": {
-        "fill": "{color.tile}",
-        "ink": "{color.tier-24}"
-      },
-      "96": {
-        "fill": "{color.tile}",
-        "ink": "{color.tier-96}"
-      },
-      "480": {
-        "fill": "{color.tile}",
-        "ink": "{color.tier-480}"
-      },
-      "960": {
-        "fill": "{color.tile}",
-        "ink": "{color.tier-960}"
-      },
-      "1920": {
-        "fill": "{color.tile-jackpot}",
-        "ink": "{color.tier-1920}"
-      }
-    },
+    "tier": {},
     "radius": {
       "sm": "{radius.button}",
       "md": "{radius.input}",
@@ -477,30 +464,6 @@
       "name": "text-muted on bg-card",
       "fg": "{color.text-muted}",
       "bg": "{color.bg-card}",
-      "kind": "body"
-    },
-    {
-      "name": "tier-24 on tile",
-      "fg": "{color.tier-24}",
-      "bg": "{color.tile}",
-      "kind": "body"
-    },
-    {
-      "name": "tier-96 on tile",
-      "fg": "{color.tier-96}",
-      "bg": "{color.tile}",
-      "kind": "body"
-    },
-    {
-      "name": "accent-blue-text (tier-480/960) on tile",
-      "fg": "{color.accent-blue-text}",
-      "bg": "{color.tile}",
-      "kind": "body"
-    },
-    {
-      "name": "tier-1920 on tile-jackpot navy",
-      "fg": "{color.tier-1920}",
-      "bg": "{color.tile-jackpot}",
       "kind": "body"
     },
     {
@@ -646,6 +609,234 @@
       "fg": "{legacy.mint}",
       "bg": "{legacy.bg-2}",
       "kind": "body"
+    },
+    {
+      "name": "tier-5 on tile",
+      "fg": "{color.tier-5}",
+      "bg": "{color.tile}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-5 on bg-frame (last results pill)",
+      "fg": "{color.tier-5}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-5 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-5}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-10 on tile",
+      "fg": "{color.tier-10}",
+      "bg": "{color.tile}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-10 on bg-frame (last results pill)",
+      "fg": "{color.tier-10}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-10 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-10}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-20 on tile",
+      "fg": "{color.tier-20}",
+      "bg": "{color.tile}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-20 on bg-frame (last results pill)",
+      "fg": "{color.tier-20}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-20 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-20}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-50 on tile",
+      "fg": "{color.tier-50}",
+      "bg": "{color.tile}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-50 on bg-frame (last results pill)",
+      "fg": "{color.tier-50}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-50 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-50}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-100 on tile-jackpot",
+      "fg": "{color.tier-100}",
+      "bg": "{color.tile-jackpot}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-100 on bg-frame (last results pill)",
+      "fg": "{color.tier-100}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-100 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-100}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-100 on bg-panel-navy (last results pill)",
+      "fg": "{color.tier-100}",
+      "bg": "{color.bg-panel-navy}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-200 on tile-jackpot",
+      "fg": "{color.tier-200}",
+      "bg": "{color.tile-jackpot}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-200 on bg-frame (last results pill)",
+      "fg": "{color.tier-200}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-200 on bg-card-pill (tier button, paytable pill)",
+      "fg": "{color.tier-200}",
+      "bg": "{color.bg-card-pill}",
+      "kind": "body"
+    },
+    {
+      "name": "tier-200 on bg-panel-navy (last results pill)",
+      "fg": "{color.tier-200}",
+      "bg": "{color.bg-panel-navy}",
+      "kind": "body"
+    },
+    {
+      "name": "text-muted square number on tile",
+      "fg": "{color.text-muted}",
+      "bg": "{color.tile}",
+      "kind": "body"
+    },
+    {
+      "name": "text-muted square number on tile-jackpot",
+      "fg": "{color.text-muted}",
+      "bg": "{color.tile-jackpot}",
+      "kind": "body"
+    },
+    {
+      "name": "No win label (text-muted) on tile-blank",
+      "fg": "{color.text-muted}",
+      "bg": "{color.tile-blank}",
+      "kind": "body"
+    },
+    {
+      "name": "No win label (text-muted) on tile-blank-hatch",
+      "fg": "{color.text-muted}",
+      "bg": "{color.tile-blank-hatch}",
+      "kind": "body"
+    },
+    {
+      "name": "tile-blank-edge (dashed border, no-win glyph) on tile-blank",
+      "fg": "{color.tile-blank-edge}",
+      "bg": "{color.tile-blank}",
+      "kind": "ui"
+    },
+    {
+      "name": "tile-blank-edge (dashed border, no-win glyph) on tile-blank-hatch",
+      "fg": "{color.tile-blank-edge}",
+      "bg": "{color.tile-blank-hatch}",
+      "kind": "ui"
+    },
+    {
+      "name": "tile-blank-edge vs bg-frame",
+      "fg": "{color.tile-blank-edge}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "text-muted legend on bg-frame",
+      "fg": "{color.text-muted}",
+      "bg": "{color.bg-frame}",
+      "kind": "body"
+    },
+    {
+      "name": "chip-100 numeral",
+      "fg": "{color.chip-text-light}",
+      "bg": "{color.chip-100}",
+      "kind": "body"
+    },
+    {
+      "name": "chip-edge on chip-100",
+      "fg": "{color.chip-edge}",
+      "bg": "{color.chip-100}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-100 fill vs bg-rail",
+      "fg": "{color.chip-100}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-100 fill vs bg-frame",
+      "fg": "{color.chip-100}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-100 fill vs bg-bottombar",
+      "fg": "{color.chip-100}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-500 numeral",
+      "fg": "{color.chip-text-light}",
+      "bg": "{color.chip-500}",
+      "kind": "body"
+    },
+    {
+      "name": "chip-edge on chip-500",
+      "fg": "{color.chip-edge}",
+      "bg": "{color.chip-500}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-500 fill vs bg-rail",
+      "fg": "{color.chip-500}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-500 fill vs bg-frame",
+      "fg": "{color.chip-500}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-500 fill vs bg-bottombar",
+      "fg": "{color.chip-500}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
     }
   ]
 }

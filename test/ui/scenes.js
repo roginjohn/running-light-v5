@@ -1,7 +1,7 @@
 // Scene setup helpers shared by screenshots and UI tests (test mode hooks only).
 import { sleep, waitPhase } from './harness.js';
 
-// v5 batch 2: bets are keyed by tier (the v3 UI shows them on every square of the tier, Batch 2 adapter)
+// v5: bets are keyed by tier
 export const BETS = { 5: 10, 10: 10, 20: 5, 50: 5, 100: 5, 200: 5 }; // total 40 on the 6 tiers
 export const H01 = [5, 31, 12, 44, 3, 27, 9, 36, 20, 50];
 export const H03 = [...H01.slice(1), 12];

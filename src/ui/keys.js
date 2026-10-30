@@ -1,11 +1,11 @@
 // Keyboard map (spec B8 + B13 fix 2). Pure: maps a key event + context to an intent.
 // Intents: { kind: 'dispatch', action } | { kind: 'activate' } (press focused control) |
-//          { kind: 'focusSquare', delta } | { kind: 'tab', delta } | { kind: 'slider', delta } | null
+//          { kind: 'focusTier', delta } | { kind: 'tab', delta } | { kind: 'slider', delta } | null
 
 const NAV_KEYS = new Set(['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
 /**
- * ctx: { phase, info, refill, focus: { kind: 'square'|'button'|'chip'|'pick'|'slider'|'toggle'|'tab'|'icon'|null, square } }
+ * ctx: { phase, info, refill, focus: { kind: 'tier'|'button'|'chip'|'pick'|'slider'|'toggle'|'tab'|'icon'|null, tier } }
  */
 export function mapKey(e, ctx) {
   const key = e.key;
@@ -17,7 +17,7 @@ export function mapKey(e, ctx) {
 
   if (k === 'm' && !e.ctrlKey) return { kind: 'dispatch', action: { type: 'TOGGLE_MUTE' } };
 
-  const activateOr = (fallback) => (focus.kind && focus.kind !== 'square' ? { kind: 'activate' } : fallback);
+  const activateOr = (fallback) => (focus.kind && focus.kind !== 'tier' ? { kind: 'activate' } : fallback);
 
   switch (ctx.phase) {
     case 'ERROR':
@@ -64,11 +64,11 @@ export function mapKey(e, ctx) {
   if (k === 'z' || (k === 'z' && e.ctrlKey)) return { kind: 'dispatch', action: { type: 'UNDO' } };
   if (k === 'c' && !e.ctrlKey) return { kind: 'dispatch', action: { type: 'CLEAR' } };
   if (k === 'r' && !e.ctrlKey) return { kind: 'dispatch', action: { type: 'REBET' } };
-  if (focus.kind === 'square') {
-    if (k === 'Enter') return { kind: 'dispatch', action: { type: e.shiftKey ? 'REMOVE_BET' : 'ADD_BET', square: focus.square } };
-    if (k === 'Backspace') return { kind: 'dispatch', action: { type: 'REMOVE_BET', square: focus.square } };
-    if (k === 'ArrowRight' || k === 'ArrowDown') return { kind: 'focusSquare', delta: 1 };
-    if (k === 'ArrowLeft' || k === 'ArrowUp') return { kind: 'focusSquare', delta: -1 };
+  if (focus.kind === 'tier') {
+    if (k === 'Enter') return { kind: 'dispatch', action: { type: e.shiftKey ? 'REMOVE_BET' : 'ADD_BET', tier: focus.tier } };
+    if (k === 'Backspace') return { kind: 'dispatch', action: { type: 'REMOVE_BET', tier: focus.tier } };
+    if (k === 'ArrowRight' || k === 'ArrowDown') return { kind: 'focusTier', delta: 1 };
+    if (k === 'ArrowLeft' || k === 'ArrowUp') return { kind: 'focusTier', delta: -1 };
   }
   if (k === ' ') return activateOr({ kind: 'dispatch', action: { type: 'START' } });
   if (k === 'Enter') return activateOr(null);

@@ -45,15 +45,14 @@ test('768x1024: the frame hugs track + dock + bar and is centred (betting-768x10
   assert.ok(Math.abs(L.frame.y - (1024 - L.frame.h - L.frame.y)) <= 1, 'centred vertically');
   assert.equal(L.bar.y + L.bar.h, L.frame.y + L.frame.h);
   assert.equal(L.tile.w, computeLayout(768, 1024, null).tile.w, 'same pitch as the first pass');
-  // the narrow fallback (< 600 px wide) still fills the screen
+  // phones (< 600 px wide) have their own layout that fills the screen
   const N = computeLayout(390, 844);
-  assert.equal(N.frame.h, 844 - 32);
+  assert.deepEqual([N.bp, N.frame.h, N.frame.w], ['phone', 844, 390]);
 });
 
-test('Double Run markers: hidden on tiles under 30 px; on tablets the stop badge moves onto the tile corner', () => {
+test('Double Run markers: hidden on phone tiles', () => {
   assert.equal(layoutVars(computeLayout(768, 1024))['--mk-d'], 'block');
   assert.equal(layoutVars(computeLayout(1280, 720))['--mk-d'], 'block');
   assert.equal(layoutVars(computeLayout(390, 844))['--mk-d'], 'none');
-  assert.match(rule('#app[data-bp^="tablet"] .tile.mk .bet'), /right: -5px; top: -5px/);
   assert.match(rule('#app:not([data-bp="desktop-xl"]) .tile .mkt'), /display: var\(--mk-d\)/);
 });

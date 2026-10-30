@@ -3,14 +3,15 @@
 // v3 frame (batch 2, tokens.md §4): a centred frame (max 1600x980, 16 px minimum page margin) holding the rail
 // (230 px + 1 px divider) and the game area, with a 40 px bottom bar across the full frame width. Tablet portrait
 // stacks game area, control dock and bottom bar inside the same frame.
-// SCOPE: desktop and tablet only. The mobile (< 600 px, 11x16 ring) layout is NOT built in this release: narrower
-// viewports fall back to the tablet-portrait layout (scaled down). See README.md.
+// Phones (v5 batch 4, tiers/SPEC.md §2.9): under 600 px wide in portrait the frame fills the screen, the bar moves to
+// the top, a compact dock sits at the bottom, and the ring is 11x16 (12x15 at 700 px tall or less).
 
 export const FRAME = { maxW: 1600, maxH: 980, margin: 16, rail: 230, divider: 1, bar: 40 };
-export const TRACK = { gap: 6, pitchMin: 40, pitchMax: 70 };
+export const TRACK = { gap: 6, pitchMin: 40, pitchMax: 80 }; // v5: 80 px max pitch, 74 px squares at 1920x1080 (tiers/SPEC.md §2.9)
 export const TOP_ROW = { h: 56, hSmall: 44 };
-// big mono multiplier (tokens.md §2): 88 desktop, 64 at 1280x720, 52 on tablet portrait
-export const BIG_F = { 'desktop-xl': 88, desktop: 64, 'tablet-landscape': 64, 'tablet-portrait': 52 };
+export const PHONE = { bar: 44, gap: 3, marginX: 12, marginY: 6, dockH: 122, smallH: 700 };
+// big mono multiplier (tokens.md §2): 88 desktop, 64 at 1280x720, 52 on tablet portrait, 32 on phones
+export const BIG_F = { 'desktop-xl': 88, desktop: 64, 'tablet-landscape': 64, 'tablet-portrait': 52, phone: 32 };
 
 // Rail controls (v3 batch 3, tokens.md §3): rail padding 16 (12 at 1280) with a 12 gap between blocks; input 40,
 // chip 34 (40 on tablet), secondary button 32, primary button 52 (48 at 1280, 56 on tablet).
@@ -34,13 +35,24 @@ const BPS = {
     // 12 + the one-line disclaimer 16), used to size the frame to its content (betting-768x1024.png)
     dock: { minH: 390, fitH: 246, chip: 40, gapY: 12, inputH: 40, actH: 32, mainH: 56 },
   },
+  phone: {
+    s: 0.85, disc: 40,
+    dock: { chip: 44, gapY: 8, inputH: 40, actH: 48, mainH: 48 },
+  },
 };
 
 export const COLS = 16;
 export const ROWS = 11;
 
+/** Ring shape [cols, rows]: 16x11 on desktop and tablet, 11x16 on phones, 12x15 on phones 700 px tall or less. */
+export function ringShape(bp, h) {
+  if (bp !== 'phone') return [COLS, ROWS];
+  return h <= PHONE.smallH ? [12, 15] : [11, 16];
+}
+
 export function breakpointFor(w, h) {
-  if (w < 900 && h > w) return 'tablet-portrait'; // includes the narrow fallback (phone sizes)
+  if (w < 600 && h > w) return 'phone';
+  if (w < 900 && h > w) return 'tablet-portrait';
   if (w < 1200) return 'tablet-landscape';
   if (w < 1600) return 'desktop';
   return 'desktop-xl';
@@ -59,8 +71,9 @@ export function cell(n, cols = COLS, rows = ROWS) {
 export function computeLayout(W, H, fit = null) {
   const bp = breakpointFor(W, H);
   const B = BPS[bp];
+  if (bp === 'phone') return phoneLayout(W, H, B);
   const dockMode = bp === 'tablet-portrait';
-  const L = { bp, W, H, s: B.s, cols: COLS, rows: ROWS, dockMode };
+  const L = { bp, W, H, s: B.s, cols: COLS, rows: ROWS, dockMode, phone: false };
 
   const fw0 = Math.min(FRAME.maxW, W - 2 * FRAME.margin), fh0 = fit ? fit.h : Math.min(FRAME.maxH, H - 2 * FRAME.margin);
   const frame = { x: Math.round((W - fw0) / 2), y: fit ? fit.y : Math.round((H - fh0) / 2), w: fw0, h: fh0 };
@@ -86,8 +99,8 @@ export function computeLayout(W, H, fit = null) {
   const boxW = stage.w - 2 * padX;
   const boxH = dockMode ? bar.y - 12 - B.dock.minH - (stage.y + top.h) : stage.h - top.h;
   const fitP = Math.floor(Math.min(boxW / COLS, boxH / ROWS));
-  const pitch = fit ? fit.pitch : Math.min(TRACK.pitchMax, Math.max(fitP, Math.min(TRACK.pitchMin, Math.floor(boxW / COLS))));
-  const g = pitch >= TRACK.pitchMin ? TRACK.gap : Math.max(2, Math.round(pitch * 0.12));
+  const pitch = fit ? fit.pitch : Math.min(TRACK.pitchMax, fitP);
+  const g = TRACK.gap;
   const px = pitch, py = pitch;
   const tw = px - g, th = py - g;
   const trackW = COLS * px - g, trackH = ROWS * py - g;
@@ -105,8 +118,7 @@ export function computeLayout(W, H, fit = null) {
     const need = stage.y - frame.y + stage.h + B.dock.fitH + 12 + FRAME.bar;
     if (!fit && W >= 600 && need < frame.h) return computeLayout(W, H, { y: Math.round((H - need) / 2), h: need, pitch });
   }
-  // tile type (tokens.md §2-3): square numbers hidden at 48 px tiles and below; multiplier 12/11/10; badge 18/16/15
-  const tile = { w: tw, h: th, showNum: tw > 48, mult: tw >= 60 ? 12 : tw >= 44 ? 11 : 10, badge: tw >= 60 ? 18 : tw >= 44 ? 16 : 15 };
+  const tile = tileType(tw, th);
   // centre panel: the ring interior inset by 12 px (tokens.md §4)
   const inner = { x: track.x + tw + 12, y: track.y + th + 12, w: (COLS - 1) * px - tw - 24, h: (ROWS - 1) * py - th - 24 };
   L.bigF = Math.min(BIG_F[bp], Math.floor(inner.w / 5.2));
@@ -119,12 +131,45 @@ export function computeLayout(W, H, fit = null) {
   return L;
 }
 
+/** Tile type: square numbers hidden at 48 px tiles and below, multiplier 20 / 14 / 12 (12 px minimum, SPEC.md), and
+ *  "No win" in words from 44 px tiles up (the glyph alone below that). */
+function tileType(w, h) {
+  return { w, h, showNum: w > 48, mult: w >= 60 ? 20 : w >= 44 ? 14 : 12, noWinText: w >= 44, noGlyph: w >= 44 ? 16 : 12, dy: w >= 60 ? 8 : w >= 36 ? 5 : 0 };
+}
+
+/** Phone portrait: bar on top, the ring in the middle, the compact dock at the bottom. No top row, no page margin. */
+function phoneLayout(W, H, B) {
+  const [cols, rows] = ringShape('phone', H);
+  const frame = { x: 0, y: 0, w: W, h: H };
+  const bar = { x: 0, y: 0, w: W, h: PHONE.bar };
+  const dock = { ...B.dock, x: 0, y: H - PHONE.dockH, w: W, h: PHONE.dockH };
+  const stage = { x: 0, y: bar.h, w: W, h: dock.y - bar.h };
+  const pitch = Math.floor(Math.min((W - 2 * PHONE.marginX + PHONE.gap) / cols, (stage.h - 2 * PHONE.marginY + PHONE.gap) / rows));
+  const g = PHONE.gap;
+  const tw = pitch - g;
+  const track = { w: cols * pitch - g, h: rows * pitch - g };
+  track.x = Math.round((W - track.w) / 2);
+  track.y = Math.round(stage.y + (stage.h - track.h) / 2);
+  const pos = [null];
+  for (let n = 1; n <= 50; n++) {
+    const [c, r, side] = cell(n, cols, rows);
+    pos.push({ x: track.x + c * pitch, y: track.y + r * pitch, side });
+  }
+  const inner = { x: track.x + pitch + 2, y: track.y + pitch + 2, w: (cols - 2) * pitch - g - 4, h: (rows - 2) * pitch - g - 4 };
+  return {
+    bp: 'phone', W, H, s: B.s, cols, rows, dockMode: true, phone: true, small: H <= PHONE.smallH, header: 0,
+    px: pitch, py: pitch, g, tile: tileType(tw, tw), disc: B.disc, frame, bar, stage, rail: null, dock, top: null, track, inner, pos,
+    bigF: BIG_F.phone,
+  };
+}
+
 /** CSS custom properties for the current layout (applied on #app). */
 export function layoutVars(L) {
   const t = L.tile;
   const v = {
     '--s': L.s, '--tw': `${t.w}px`, '--th': `${t.h}px`, '--num-d': t.showNum ? 'block' : 'none', '--mult-f': `${t.mult}px`,
-    '--badge': `${t.badge}px`, '--big-f': `${L.bigF}px`, '--disc': `${L.disc}px`, '--mk-d': t.w >= 30 ? 'block' : 'none',
+    '--big-f': `${L.bigF}px`, '--disc': `${L.disc}px`, '--mk-d': t.w >= 36 ? 'block' : 'none',
+    '--nw-d': t.noWinText ? 'block' : 'none', '--no-s': `${t.noGlyph}px`, '--m-dy': `${t.dy}px`,
   };
   const c = L.rail || L.dock;
   Object.assign(v, {

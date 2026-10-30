@@ -1,5 +1,5 @@
 // v3 page frame (batch 2): frame, rail, divider, game area and bottom bar geometry from tokens.md §4, and the
-// fairness copy rule (no "provably fair" claim anywhere in the UI).
+// copy rule (no "provably fair" claim anywhere in the UI).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';

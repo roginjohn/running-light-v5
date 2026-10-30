@@ -10,11 +10,9 @@ Browser version of the Philippine perya "Running Light" bulb-track game, **Redes
 | desktop-xl | width ≥ 1600 (ref 1920×1080) | header 64 · left rail 440 · stage (16×11 track, 76×72 tiles) · utility bar |
 | desktop | 1200–1599 (ref 1280×720) | header 52 · rail 356 · stage (48×47 tiles) |
 | tablet-landscape | 900–1199 (ref 1024×768) | header 52 · compact rail 264 · stage (40×50 tall tiles) |
-| tablet-portrait | < 900 and portrait (ref 768×1024) | header 56 · stage on top · dock with 2 panels |
+| tablet-portrait | 600–899 and portrait (ref 768×1024) | header 56 · stage on top · dock with 2 panels |
+| phone | < 600 and portrait (ref 390×844, 360×640) | bar on top · 11×16 ring (12×15 at 700 px tall or less) · compact dock |
 
-**The phone layout (390×844, 11×16 portrait ring) is NOT built in this release.** Narrower viewports (e.g. phones
-in portrait) fall back to the **tablet-portrait layout**, scaled down: the track pitch is fitted to the width and
-clamped to the token values, and text never goes below the token minimums. It is playable but not designed for phones.
 Below **320 px wide or 480 px tall** the "Rotate / enlarge" screen is shown. Landscape windows narrower than 900 px
 use the tablet-landscape layout, scaled to fit.
 

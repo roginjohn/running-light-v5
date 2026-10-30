@@ -120,20 +120,41 @@ test('light CSS: lit / trail / land rules use only fills, colours, opacity, tran
   assert.doesNotMatch(rulesFor(/^\.tile$/)[0].body, /transition/);
 });
 
+test('phone ring shapes (SPEC.md §2.9): 11x16, 12x15 at 700 px tall or less, 16x11 from 600 px wide or in landscape', () => {
+  for (const [W, H, cols, rows, tile] of [[390, 844, 11, 16, 30], [360, 640, 12, 15, 25], [430, 932, 11, 16, 34]]) {
+    const L = computeLayout(W, H);
+    assert.deepEqual([L.bp, L.cols, L.rows, L.tile.w], ['phone', cols, rows, tile], `${W}x${H}`);
+    const at = new Set(L.pos.slice(1).map((p) => `${p.x},${p.y}`));
+    assert.equal(at.size, 50, 'every square has its own cell');
+    assert.deepEqual([L.pos[1].x, L.pos[1].y], [L.track.x, L.track.y], '#1 top-left');
+    assert.equal(L.pos[cols].x, L.track.x + (cols - 1) * L.px, 'top row runs left to right');
+    assert.equal(L.pos[50].x, L.track.x, 'the left column ends under #1');
+    assert.equal(L.pos[50].y, L.track.y + L.py);
+    assert.ok(L.track.y >= L.bar.y + L.bar.h && L.track.y + L.track.h <= L.dock.y, 'between bar and dock');
+    assert.ok(L.track.x >= 0 && L.track.x + L.track.w <= W);
+    assert.equal(L.tile.showNum, false);
+    assert.equal(L.tile.noWinText, false);
+    assert.ok(L.inner.x >= L.track.x + L.tile.w && L.inner.y >= L.track.y + L.tile.h, 'centre clear of the ring');
+  }
+  for (const [W, H, bp] of [[768, 1024, 'tablet-portrait'], [844, 390, 'tablet-landscape'], [600, 900, 'tablet-portrait'], [1920, 1080, 'desktop-xl']]) {
+    assert.deepEqual([computeLayout(W, H).bp, computeLayout(W, H).cols, computeLayout(W, H).rows], [bp, 16, 11], `${W}x${H}`);
+  }
+});
+
 test('big number CSS: mono, fixed size with strict containment; v2 bulb, lock, headline, legend and history rules gone', () => {
   const big = rulesFor(/^\.big$/)[0].body;
   assert.match(big, /contain: strict/);
   assert.match(big, /width: [\d.]+ch/);
   assert.match(big, /var\(--f-mono\)/);
   assert.match(big, /color: var\(--c-big-number\)/);
-  for (const gone of ['.bulb', '.tile .lock', '.headline', '.legend', '.lg ', '.hist', '.he ', '.band', 'badgepop', '.pill.st', '.lastbets .lb']) {
+  for (const gone of ['.bulb', '.tile .lock', '.headline', '.legend ', '.lg ', '.hist', '.he ', '.band', 'badgepop', '.pill.st', '.lastbets .lb']) {
     assert.ok(!STYLES.includes(gone), gone);
   }
   assert.match(STYLES, /#r-track \{[^}]*contain: layout paint/);
 });
 
-test('track geometry follows tokens.md §4: pitch = clamp(40, floor(min(boxW/16, boxH/11)), 70), tile = pitch - 6', () => {
-  for (const [W, H, pitch] of [[1920, 1080, 70], [1280, 720, 54], [1024, 768, 45], [768, 1024, 44]]) {
+test('track geometry follows tokens.md §4: pitch = min(floor(min(boxW/16, boxH/11)), 80), tile = pitch - 6', () => {
+  for (const [W, H, pitch] of [[1920, 1080, 80], [1280, 720, 54], [1024, 768, 45], [768, 1024, 44]]) {
     const L = computeLayout(W, H);
     assert.equal(L.px, pitch, `${W}x${H}`);
     assert.equal(L.tile.w, pitch - 6);
@@ -145,8 +166,8 @@ test('track geometry follows tokens.md §4: pitch = clamp(40, floor(min(boxW/16,
   }
   assert.equal(computeLayout(1920, 1080).top.h, 56);
   assert.equal(computeLayout(1280, 720).top.h, 44);
-  // tile type: numbers hidden at 48 px tiles and below, multiplier 12 / 11 / 10, badge 18 / 16 / 15
-  assert.deepEqual(['1920x1080', '1280x720', '768x1024'].map((s) => { const [w, h] = s.split('x').map(Number); const t = computeLayout(w, h).tile; return [t.showNum, t.mult, t.badge]; }),
-    [[true, 12, 18], [false, 11, 16], [false, 10, 15]]);
+  // tile type: numbers hidden at 48 px tiles and below, multiplier 20 / 14 / 12
+  assert.deepEqual(['1920x1080', '1280x720', '768x1024'].map((s) => { const [w, h] = s.split('x').map(Number); const t = computeLayout(w, h).tile; return [t.showNum, t.mult]; }),
+    [[true, 20], [false, 14], [false, 12]]);
   assert.deepEqual([1920, 1280, 768].map((w) => computeLayout(w, w === 768 ? 1024 : w * 9 / 16).bigF), [DOC.type['big-number'].size, DOC.type['big-number-1280'].size, DOC.type['big-number-768'].size]);
 });

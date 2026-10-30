@@ -24,7 +24,7 @@ export function chipFace(v) {
   return `<svg viewBox="0 0 34 34" aria-hidden="true"><circle class="face" cx="17" cy="17" r="17"/><circle class="edge" cx="17" cy="17" r="${CHIP_R}" fill="none" stroke-width="3" stroke-dasharray="${CHIP_DASH} ${gap.toFixed(3)}" stroke-dashoffset="${CHIP_DASH / 2}" transform="rotate(-90 17 17)"/></svg><span class="cv" aria-hidden="true">${v}</span>`;
 }
 
-// v3 outline icons (18 px in 32 px hit boxes, currentColor). Drawn for v3: stats bars, fairness scales, and the
+// v3 outline icons (18 px in 32 px hit boxes, currentColor). Drawn for v3: stats bars, results scales, and the
 // Running Light mark (a ring of 8 squares around an empty centre, the first one lit).
 const V3 = {
   stats: '<path d="M4 20h16M7.5 20v-5.5M12 20V7.5M16.5 20v-9"/>',

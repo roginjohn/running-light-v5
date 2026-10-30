@@ -305,7 +305,7 @@ export function footerText(state, gambleWhy) {
     const both = r.doubleRun && r.bets[r.s1] && r.bets[r.s2];
     if (gambleWhy) return `Enter  collect ${fmt(r.currentWin)}   ·   gamble unavailable (${gambleWhy === 'cap' ? `doubling would exceed ${fmt(GAMBLE_CAP)}` : '3 gambles used'})   ·   Space  press focused button`;
     if (both) return 'Double Run: two different squares won  ·  each square pays once  ·  Enter collect  ·  G gamble  ·  Space press focused button';
-    return `Enter  collect ${fmt(r.currentWin)}   ·   G  gamble ×2 (pick red or white, fair 50/50, double or nothing)   ·   Space  press focused button`;
+    return `Enter  collect ${fmt(r.currentWin)}   ·   G  gamble ×2 (pick red or white, 50/50, double or nothing)   ·   Space  press focused button`;
   }
   if (p === 'PAYOUT') return 'Collecting…  ·  click anywhere to skip the count';
   return FOOTER_BETTING;
@@ -376,7 +376,7 @@ export function gambleModal(state, ui, gambleWhy) {
   const flipN = applied.length + 1;
   s.push(t(cx, y + 142, 'CURRENT WIN', 18, C['text-muted-on-dark'], UI, 900, 'middle', 3));
   s.push(`<g aria-live="polite">${t(cx, y + 214, fmt(win), 80, C.marigold, UI, 900, 'middle', 0, `stroke="#2A160A" stroke-width="6" paint-order="stroke" opacity="${ui.winFade ?? 1}"`)}</g>`);
-  s.push(t(cx, y + 262, `Pick a colour for flip ${Math.min(flipN, MAX_GAMBLES)}, then press GAMBLE. Fair 50/50: win ×2 if your colour lights.`, 19, C.cream, UI, 800));
+  s.push(t(cx, y + 262, `Pick a colour for flip ${Math.min(flipN, MAX_GAMBLES)}, then press GAMBLE. 50/50: win ×2 if your colour lights.`, 19, C.cream, UI, 800));
   for (const [colour, pcx] of [['red', cx - 165], ['white', cx + 165]]) {
     const id = `pick-${colour}`;
     let st = 'idle';
@@ -560,7 +560,7 @@ function paytableTab() {
   s.push(t(x0, yb + 22, 'Pays = total return including your bet. Example: 5 on a 96x square returns 480.', 15, C['text-muted-on-dark'], UI, 700, 'start'));
   const blocks = [
     ['Double Run', ['1 in 25 rounds a second (turquoise) light runs.', 'It always stops on a different square.', 'Each square pays once per round.']],
-    ['Gamble', ['After a win: fair 50/50, double or nothing.', 'Up to 3 times. Collect any time.', `Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`]],
+    ['Gamble', ['After a win: 50/50, double or nothing.', 'Up to 3 times. Collect any time.', `Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`]],
     ['Limits', ['1–10 credits per square.', '1–200 credits per round, never above balance.', 'Free refill to 1,000 when credits run out.']],
   ];
   blocks.forEach(([hd, lines], i) => {
@@ -591,7 +591,7 @@ function helpTab() {
   const x0 = MX + 60, y0 = MY + 170;
   s.push(t(x0, y0, 'How to play', 40, C.marigold, DISP, 400, 'start'));
   ['Pick a chip: 1, 5, 10, 25 or 50.', 'Click squares to place bets (1–10 per square, up to 200 per round).', 'Press START. The light races around the board and stops on one square.',
-    "If it stops on your square you win bet × the square's multiplier.", 'After a win: Collect, or pick red or white and Gamble on a fair 50/50 (up to 3 times).']
+    "If it stops on your square you win bet × the square's multiplier.", 'After a win: Collect, or pick red or white and Gamble on a 50/50 (up to 3 times).']
     .forEach((st, i) => {
       const y = y0 + 44 + i * 42;
       s.push(`<circle cx="${x0 + 16}" cy="${y - 7}" r="16" fill="${C['paint-red']}"/>` + t(x0 + 16, y - 1, i + 1, 18, '#FFFFFF', UI, 900));

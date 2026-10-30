@@ -421,14 +421,13 @@ test('E1.7 event.repeat is ignored for every action key', () => {
   ];
   for (const ctx of ctxs) {
     for (const key of [' ', 'Enter', 'g', 'G', 'r', 'w', 'c', 'z', '1', '5', 'm', 'Backspace']) {
-      assert.equal(mapKey({ key, repeat: true }, { ...ctx, focus: { kind: 'square', square: 3 } }), null, `${key} ${ctx.phase}`);
+      assert.equal(mapKey({ key, repeat: true }, { ...ctx, focus: { kind: 'tier', tier: 5 } }), null, `${key} ${ctx.phase}`);
     }
   }
   assert.deepEqual(mapKey({ key: ' ', repeat: false }, { phase: 'BETTING', focus: { kind: null } }).action, { type: 'START' });
 });
 
 test('E1.7/B8 key map: G gamble, Enter collect, R/W pick in modal, Space activates focused control', () => {
-  // the v3 key map still names squares; the UI adapter (src/ui/adapter.js) turns them into tier bets
   assert.deepEqual(mapKey({ key: 'g' }, { phase: 'GAMBLE_OFFER' }).action, { type: 'GAMBLE_OPEN' });
   assert.deepEqual(mapKey({ key: 'Enter' }, { phase: 'GAMBLE_OFFER' }).action, { type: 'COLLECT' });
   assert.deepEqual(mapKey({ key: 'r' }, { phase: 'GAMBLE' }).action, { type: 'PICK', colour: 'red' });
@@ -437,8 +436,8 @@ test('E1.7/B8 key map: G gamble, Enter collect, R/W pick in modal, Space activat
   assert.deepEqual(mapKey({ key: ' ' }, { phase: 'GAMBLE', focus: { kind: 'button' } }), { kind: 'activate' });
   assert.deepEqual(mapKey({ key: 'r' }, { phase: 'BETTING' }).action, { type: 'REBET' });
   assert.deepEqual(mapKey({ key: ' ' }, { phase: 'BETTING', focus: { kind: 'chip' } }), { kind: 'activate' });
-  assert.deepEqual(mapKey({ key: ' ' }, { phase: 'BETTING', focus: { kind: 'square', square: 4 } }).action, { type: 'START' });
-  assert.deepEqual(mapKey({ key: 'Backspace' }, { phase: 'BETTING', focus: { kind: 'square', square: 4 } }).action, { type: 'REMOVE_BET', square: 4 });
+  assert.deepEqual(mapKey({ key: ' ' }, { phase: 'BETTING', focus: { kind: 'tier', tier: 5 } }).action, { type: 'START' });
+  assert.deepEqual(mapKey({ key: 'Backspace' }, { phase: 'BETTING', focus: { kind: 'tier', tier: 5 } }).action, { type: 'REMOVE_BET', tier: 5 });
   assert.equal(mapKey({ key: 'Escape' }, { phase: 'GAMBLE' }), null, 'Esc never closes the gamble modal');
   assert.deepEqual(mapKey({ key: 'Escape' }, { phase: 'BETTING', info: 'help' }).action, { type: 'CLOSE_INFO' });
   assert.equal(mapKey({ key: ' ' }, { phase: 'SPINNING' }), null);

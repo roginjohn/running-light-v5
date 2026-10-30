@@ -89,7 +89,7 @@ const SCENE = {
   },
   'settings-paytable-help': (page) => page.evaluate(() => window.__rl.game.dispatch({ type: 'OPEN_INFO', tab: 'settings' })),
   async fairness(page) {
-    const r = await page.evaluate(() => document.querySelector('[data-id="icon-fair"]').getBoundingClientRect().toJSON());
+    const r = await page.evaluate(() => document.querySelector('[data-id="icon-results"]').getBoundingClientRect().toJSON());
     await page.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
   },
   start: (page) => page.evaluate(() => { window.__rl.app.ui.start = true; window.__rl.app.render(); }),
