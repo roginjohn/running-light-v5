@@ -12,7 +12,8 @@
 v5 math locked = MATH-SPEC-C (`docs/design-v5/MATH-SPEC-C.md`): tiers 5/10/20/50/100/200x, 30 tier squares + 20
 blanks, total weight 10476, Double Run 1/25, gamble max 3 / 300,000 cap, limits 1,000 per tier and 1,000 per round.
 `src/engine/` is changed only in batch 2 (math) and batch 3 (`storage.js` only). After batch 2,
-`git diff v5-batch-2 -- src/engine` must be empty for every UI batch, except the batch-3 change to `storage.js`.
+`git diff v5-batch-2 -- src/engine` must be empty for every UI batch, except the batch-3 change to `storage.js` and the
+batch-7 one-line comment on `gambleDraw` in `outcome.js`.
 Any other engine change needs Rogin's approval. Play credits only.
 
 Do not delete the v1 files or the `rl.v1.*` storage keys without Rogin's approval.
@@ -20,10 +21,11 @@ Do not delete the v1 files or the `rl.v1.*` storage keys without Rogin's approva
 ## Checks for every batch
 1. `npm test`: all unit tests pass. The v5 tests in `test/unit/v5/` start skipped (`{ skip: 'v5 batch N' }`); each
    batch unskips its own and they must pass.
-2. `npm run test:ui`: no console errors and no external requests.
+2. `npm run test:ui`: no console errors and no external requests. Includes `test/ui/a11y.test.js`, the measured contrast,
+   type size, tap target, live region and reduced-motion checks.
 3. `npm run sim:quick`: seeded 1M rounds, RTP 95.4% ± 0.3 (from batch 2 on). Run the full `npm run sim` for
    batches 2 and 6.
-4. From batch 3 on: `git diff v5-batch-2 -- src/engine` is empty (batch 3: `storage.js` only).
+4. From batch 3 on: `git diff v5-batch-2 -- src/engine` is empty (batch 3: `storage.js` only; batch 7: the `gambleDraw` comment).
 5. Screenshots compared against `docs/design-v5/tiers/png/`.
 
 ## v5 batches
