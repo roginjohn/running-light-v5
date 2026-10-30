@@ -34,10 +34,15 @@ function cssRef(T, v) {
   });
 }
 
-/** Recomputes every contrast pair listed in the tokens. Returns [{ name, kind, ratio, need, pass }]. */
+/** The colour c shows at opacity a over the fill behind it. */
+const composite = (c, over, a) => `#${hex(c).map((v, i) => Math.round((v * a + hex(over)[i] * (1 - a)) * 255).toString(16).padStart(2, '0')).join('')}`;
+
+/** Recomputes every contrast pair listed in the tokens; a pair with `opacity` and `over` is on an element faded as a
+ *  whole, so both colours are composited over that fill first. Returns [{ name, kind, ratio, need, pass }]. */
 export function contrastChecks(tokens) {
   return tokens.contrast.map((c) => {
-    const ratio = Math.round(contrastRatio(resolve(tokens, c.fg), resolve(tokens, c.bg)) * 100) / 100;
+    const shown = (v) => (c.opacity ? composite(resolve(tokens, v), resolve(tokens, c.over), Number(resolve(tokens, c.opacity))) : resolve(tokens, v));
+    const ratio = Math.round(contrastRatio(shown(c.fg), shown(c.bg)) * 100) / 100;
     const need = REQUIRED[c.kind];
     return { name: c.name, kind: c.kind, ratio, need, pass: ratio >= need };
   });
@@ -49,6 +54,7 @@ export function tokensCss(T) {
   css += '  /* v3 colour */\n';
   for (const [k, v] of Object.entries(T.color)) {
     if (Array.isArray(v)) v.forEach((o, i) => { css += `  --o-${k.replace(/-opacity$/, '')}-${i + 1}:${o};\n`; });
+    else if (typeof v === 'number') css += `  --o-${k.replace(/-opacity$/, '')}:${v};\n`;
     else css += `  --c-${k}:${v};\n`;
   }
   css += '  /* v3 type */\n';

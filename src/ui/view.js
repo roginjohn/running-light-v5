@@ -1,6 +1,6 @@
 // v3 view: pure functions from (engine state, UI state, derived context, layout) to HTML strings per region.
 // No outcome logic here: every number shown comes from the engine state (stored round) or simple display arithmetic.
-import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, pRound, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MAX_PER_TIER, MIN_BET, REFILL_AMOUNT } from '../engine/config.js';
+import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT, BLANK_COUNT, BLANK_WEIGHT, CHIPS, pRound, GAMBLE_CAP, MAX_GAMBLES, HISTORY_SHOWN, DOUBLE_RUN_ONE_IN, MAX_PER_ROUND, MAX_PER_TIER, MIN_BET, REFILL_AMOUNT, TOASTS } from '../engine/config.js';
 import { sameBets } from '../engine/bets.js';
 import { icon, chipFace, v3icon, v3mark } from './icons.js';
 import { SPOT_ORDER, lightOdds, betOn, winners, lightClass, bigMult, bigValue, bigResult } from './track.js';
@@ -183,6 +183,8 @@ function mainButtons(s, ui, c, dock) {
   if (!c.total) return st('<span>Place a bet</span><span class="sub">then press START</span>');
   // bets persist between rounds: the same bets on the board replay as "Start again" (there is no Rebet)
   const again = r && r.settled && sameBets(s.bets, r.bets);
+  // kept bets can exceed the balance after a loss: Start is off until they fit (phones show the total on Start only)
+  if (c.total > s.balance) return st(`<span>${again ? 'Start again' : 'Start'} · ${fmt(c.total)}</span><span class="sub short" data-role="start-hint">${TOASTS.credits}</span>`);
   return st(`<span>${again ? 'Start again' : 'Start'}</span><span class="sub">${fmt(c.total)} on ${plural(c.count, 'spot')}</span>`, !c.canBet || ui.startLocked);
 }
 

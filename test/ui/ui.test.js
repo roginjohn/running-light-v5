@@ -257,6 +257,64 @@ test('limit toasts: 1,000 per tier, 1,000 per round, not enough credits (also an
   await page.__done();
 });
 
+test('Start over the balance: off with a visible "Not enough credits" hint; no round by click or Enter; removing bets turns it back on', async () => {
+  const page = await fresh();
+  await setup(page, { balance: 100, bets: { 5: 150 }, chip: 50, history: [] });
+  const hint = () => text(page, '[data-id="btn-start"] [data-role="start-hint"]');
+  assert.equal(await attr(page, 'btn-start', 'aria-disabled'), 'true');
+  assert.equal(await hint(), 'Not enough credits');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start · 150/);
+  assert.equal(await attr(page, 'btn-clear', 'aria-disabled'), null, 'bets can still be cleared');
+  await clickId(page, 'btn-start');
+  assert.deepEqual([(await state(page)).phase, (await state(page)).balance], ['BETTING', 100], 'click: no round');
+  await page.keyboard.press('Enter');
+  assert.deepEqual([(await state(page)).phase, (await state(page)).balance], ['BETTING', 100], 'Enter: no round');
+  await clickId(page, 'tier-5', { button: 'right' });
+  assert.deepEqual(await bets(page), { 5: 100 });
+  assert.equal(await attr(page, 'btn-start', 'aria-disabled'), null, 'exactly the balance: on');
+  assert.equal(await hint(), '');
+  assert.match(await text(page, '[data-id="btn-start"]'), /^Start100 on 1 spot$/);
+  await page.__done();
+});
+
+test('Start over the balance: kept bets after a no-win turn "Start again" off, hint fully on screen (desktop, tablet and phone)', async () => {
+  for (const size of [{ width: 1280, height: 720 }, { width: 768, height: 1024, touch: true }, { width: 360, height: 640, touch: true }]) {
+    const page = await fresh(size);
+    await setup(page, { balance: 300, bets: { 5: 100, 200: 100 }, chip: 1, history: [] });
+    await playTo(page, 2, null, 'BETTING');
+    assert.equal((await state(page)).balance, 100);
+    assert.deepEqual(await bets(page), { 5: 100, 200: 100 }, 'bets are kept');
+    assert.equal(await attr(page, 'btn-start', 'aria-disabled'), 'true');
+    const g = await page.evaluate(() => {
+      const el = document.querySelector('[data-role="start-hint"]'), b = el.getBoundingClientRect(), p = el.closest('.btn').getBoundingClientRect(), cs = getComputedStyle(el);
+      return { text: el.textContent, label: el.previousElementSibling.textContent, color: cs.color, fits: el.scrollWidth <= el.clientWidth + 1, inside: b.width > 0 && b.left >= p.left && b.right <= p.right && b.top >= p.top && b.bottom <= p.bottom, inView: p.bottom <= innerHeight && p.right <= innerWidth };
+    });
+    assert.deepEqual(g, { text: 'Not enough credits', label: 'Start again · 200', color: 'rgb(230, 234, 238)', fits: true, inside: true, inView: true }, `${size.width}`);
+    await page.__done();
+  }
+});
+
+test('faded losing spots: 85% over the frame fill, labels in text-primary, at desktop and phone', async () => {
+  for (const size of [{ width: 1920, height: 1080 }, { width: 360, height: 800, touch: true }]) {
+    const page = await fresh(size);
+    await setup(page, { balance: 1000, bets: { 5: 1, 200: 1 }, chip: 1, history: [] });
+    await playTo(page, 2, null, 'BETTING');
+    const g = await page.evaluate(() => [...document.querySelectorAll('.spot.lost')].map((e) => {
+      const b = e.getBoundingClientRect();
+      // .frame has pointer-events: none, so hit testing skips it: the first opaque fill found under the spot is the
+      // page behind the frame, which shows nothing else is painted between the spot and the frame
+      const under = document.elementsFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      const next = under.slice(under.indexOf(e) + 1).map((u) => getComputedStyle(u).backgroundColor).find((c) => !/^rgba\(.*, 0\)$|transparent/.test(c));
+      const fe = document.querySelector('.frame'), f = fe.getBoundingClientRect();
+      const inFrame = b.left >= f.left && b.right <= f.right && b.top >= f.top && b.bottom <= f.bottom;
+      return [e.dataset.id, getComputedStyle(e).opacity, getComputedStyle(e.querySelector('.sq')).color, getComputedStyle(e.querySelector('.sb')).color, getComputedStyle(e.querySelector('.sb b')).color, next, inFrame, getComputedStyle(fe).backgroundColor];
+    }));
+    const P = 'rgb(230, 234, 238)', B = 'rgb(110, 168, 254)', PAGE = 'rgb(15, 18, 22)', F = 'rgb(26, 31, 38)';
+    assert.deepEqual(g, [['tier-200', '0.85', P, P, B, PAGE, true, F], ['tier-5', '0.85', P, P, B, PAGE, true, F]], `${size.width}`);
+    await page.__done();
+  }
+});
+
 test('START locks squares and controls; bottom-bar Settings/Stats/Results locked (lock badge + reason) through SPINNING..PAYOUT; double-click START -> one round', async () => {
   const page = await fresh({ timeScale: 1 });
   await setup(page, { balance: 1000, bets: { 20: 1, 5: 1 }, chip: 1, history: [] });

@@ -103,6 +103,7 @@ svg { display: block; }
 /* Collect while the gamble disc flips: outline, locked (component sheet "outline · locked") */
 .btn.out { border: var(--b-hairline) solid var(--c-border-input); color: var(--c-text-primary); }
 .btn .sub { font-size: var(--fs-label-sm); font-weight: var(--fw-label-sm); }
+.btn .sub.short { color: var(--c-text-primary); } /* "Not enough credits" is not disabled text: it has to stay readable */
 .btn.stack { flex-direction: column; gap: 0; line-height: var(--lh-label-sm); }
 
 /* ---------- chips (v3 flat poker chips: fill + 8 white edge stripes; selected = 2 px white ring on a 2 px gap) ---------- */
@@ -198,7 +199,9 @@ svg { display: block; }
 .spot.has .sb b { font-weight: 700; color: var(--c-accent-blue-text); }
 .spot.won { background: var(--c-accent-green); border-color: var(--c-accent-green-text); color: var(--c-text-on-green); }
 .spot.won :is(.so, .sq, .sb), .spot.won .sb b { color: var(--c-text-on-green); }
-.spot.lost { opacity: .6; }
+/* the fade covers the whole spot, so its text-muted labels (4.7:1 unfaded on navy) move to text-primary to keep AA */
+.spot.lost { opacity: var(--o-spot-lost); }
+.spot.lost :is(.sq, .sb) { color: var(--c-text-primary); }
 .spots.compact { flex: none; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); }
 .spots.compact .spot { padding: var(--sp-1) var(--sp-2); text-align: center; }
 .spots.compact :is(.so, .sq) { display: none; }
