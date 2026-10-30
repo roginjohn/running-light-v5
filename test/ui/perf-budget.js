@@ -1,18 +1,18 @@
 // v5 batch 7: the perf budget. Sizes of dist/ (raw and gzip), load timing with puppeteer (median of 5 fresh, uncached loads,
-// plain and at 4x CPU), the DOM size on the betting screen and the requests made. Exits 1 if a hard budget is broken; the
-// DOM line is reported only, because v3's 400 was a suggestion and v5's ring and spots need a decision. Writes docs/design-v5/batch-7/perf.json.
+// plain and at 4x CPU), the DOM size on the betting screen and the requests made. Exits 1 if a budget is broken. v5 batch 8:
+// the DOM budget is 500 (v3's 400 predates v5's ring and spots) and is now a hard one. Writes docs/design-v5/batch-8/perf.json.
 // Budgets are design-v3/perf-notes.md, with its JS line adapted: that budget excludes the engine, this one is the whole
 // bundle, so it is the v3 batch 7 figure (32.47 KB) plus a small allowance. Run: npm run perf:budget (builds first)
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { startServer, launch } from './harness.js';
 
 const ROOT = new URL('../../', import.meta.url);
 const DIST = path.resolve(new URL('dist/', ROOT).pathname);
-const OUT = path.resolve(new URL('docs/design-v5/batch-7/perf.json', ROOT).pathname);
+const OUT = path.resolve(new URL('docs/design-v5/batch-8/perf.json', ROOT).pathname);
 const KB = 1000;
-const BUDGET = { jsGzipKB: 36, cssGzipKB: 8, fontsKB: 80, fontFiles: 3, largestAssetKB: 100, domNodes: 400, fcpMs: 300, loadMs: 1000, loadMs4x: 3000, externalRequests: 0 };
+const BUDGET = { jsGzipKB: 36, cssGzipKB: 8, fontsKB: 80, fontFiles: 3, largestAssetKB: 100, domNodes: 500, fcpMs: 300, loadMs: 1000, loadMs4x: 3000, externalRequests: 0 };
 
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = path.join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const files = walk(DIST).map((p) => {
@@ -67,12 +67,13 @@ const checks = [
   ['JS gzip', sizes.jsGzip / KB, BUDGET.jsGzipKB], ['CSS gzip', sizes.cssGzip / KB, BUDGET.cssGzipKB],
   ['Fonts', sizes.fonts / KB, BUDGET.fontsKB], ['Font files', sizes.fontFiles, BUDGET.fontFiles],
   [`Largest asset (${largest.file}, raw)`, largest.raw / KB, BUDGET.largestAssetKB],
-  ['DOM nodes, betting screen (reported only)', timing.domNodesBetting, BUDGET.domNodes, true],
+  ['DOM nodes, betting screen', timing.domNodesBetting, BUDGET.domNodes],
   ['First contentful paint, 1x CPU (ms)', timing.cpu1x.firstContentfulPaint, BUDGET.fcpMs],
   ['Ready, 1x CPU (ms)', timing.cpu1x.ready, BUDGET.loadMs], ['Ready, 4x CPU (ms)', timing.cpu4x.ready, BUDGET.loadMs4x],
   ['External requests', timing.external.length, BUDGET.externalRequests],
 ].map(([name, value, budget, soft = false]) => ({ name, value: Math.round(value * 100) / 100, budget, pass: value <= budget, soft }));
 
+mkdirSync(path.dirname(OUT), { recursive: true });
 writeFileSync(OUT, `${JSON.stringify({ files, sizes, timing, checks }, null, 2)}\n`);
 for (const f of files) console.log(`${f.file.padEnd(46)} ${String(f.raw).padStart(7)} raw ${String(f.gzip).padStart(7)} gzip`);
 console.log(`\nload, median of 5 (ms): 1x ${JSON.stringify(timing.cpu1x)}\n                        4x ${JSON.stringify(timing.cpu4x)}`);
