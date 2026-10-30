@@ -9,6 +9,7 @@ The v3 repo is frozen. Simulated play credits only.
 | [`v5-development-spec.md`](v5-development-spec.md) | Development plan: engine and UI changes, accessibility, acceptance criteria, test plan, the 8 batches and rollback. Its "Repo" line predates the move to `running-light-v5`. |
 | [`tiers/SPEC.md`](tiers/SPEC.md) | Approved layout spec for the tier-betting UI. |
 | [`tiers/mocks/`](tiers/mocks/), [`tiers/png/`](tiers/png/) | Mockup HTML and their renders (the screenshot reference). `node docs/design-v5/tiers/render.mjs` re-renders and checks them. |
+| [`batch-7/`](batch-7/) | Batch 7 review set: screenshots, `COMPARISON.md` against the mockups, `contrast.md` and `perf.json`. `npm run screenshots:batch7` and `npm run perf:budget` regenerate them. |
 | [`batch-4/`](batch-4/) | Batch 4 review set: colour swatches, desktop and phone board renders, and `contrast.md`. `node docs/design-v5/batch-4/render.mjs` regenerates them after a build. |
 
 Test scaffold: `test/fixtures/math-c.js` holds the MATH-SPEC-C constants, and `test/unit/v5/` holds the §6 test plan as

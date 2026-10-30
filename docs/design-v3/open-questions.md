@@ -14,7 +14,7 @@
 9. **Double Run markers.** The stops get "1st"/"2nd" in place of the square number, the cards say "1 · #21" / "2 · #33", and the history pill shows "960x · 24x".
 
 ## Items needing a decision
-10. **Fairness icon (scales).** The bottom bar has a fairness icon as requested. There is no provably-fair seed system in the engine, so the icon should open a plain "How results are decided" panel (outcome decided and saved before the light runs, weights 80/20/4/2/1 of 2,093, fair 50/50 gamble). It should not imply seed verification. Confirm wording.
+10. **Results icon (scales).** The bottom bar has a results icon as requested. There is no seed-verification system in the engine, so the icon should open a plain "How results are decided" panel (outcome decided and saved before the light runs, weights 80/20/4/2/1 of 2,093, 50/50 gamble). It should not imply seed verification. Confirm wording.
 11. **Star icon.** Meaning unclear in a standalone game (favourite?). Keep, repurpose, or drop?
 12. **Stats icon.** This needs a small stats panel (rounds, wins, biggest win, from local history). Not mocked this session.
 13. **Mobile (< 600 px)** and **tablet landscape** were not mocked. 768×1024 shows the stacked rail. The 16×11 ring becomes too small on phones (v2 used an 11×16 portrait ring). Decide in Session Two.

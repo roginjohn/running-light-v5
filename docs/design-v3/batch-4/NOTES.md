@@ -41,7 +41,7 @@ Branch `v3/batch-4-track`. Not committed. This batch restyles the 50-square trac
 - `npm run test:ui`: **38/38 pass** (35 before + 3 new). No console errors, no failed or external requests. Layout checks pass at 1920×1080, 1280×720, 1024×768, 768×1024 and the 390×844 fallback (50 tiles, no overlaps, all in view, WIN tags clear of tiles).
 - `npm run sim:quick` (1M rounds): RTP **95.613%** (A) / **95.656%** (B), both PASS (95.45 ± 0.3); Double Run 3.99% / 4.02%; gamble 49.97%; E2 PASS. Identical to batch 3 (same seeds, engine unchanged).
 - `npm run sim` (full, 5M rounds, required for batch 4): RTP **95.469%** (A) / **95.597%** (B), both PASS; Double Run 3.996% / 3.995%; gamble 49.979%; E2 PASS.
-- `git diff main -- src/engine`: empty. No "provably fair" wording (existing `/provabl/i` checks pass over the new files).
+- `git diff main -- src/engine`: empty. No outcome-verification wording (existing `/provabl/i` checks pass over the new files).
 
 ## Performance evidence
 `npm run build && npm run perf:trace` — Chrome trace (`devtools.timeline` + `disabled-by-default-devtools.timeline`) from START until the light stops, 1920×1080, timeScale 1, stored stop #30, the mockup's 6 bets.

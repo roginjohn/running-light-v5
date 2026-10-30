@@ -10,7 +10,7 @@
 //   refill                         credits 0, no bets: Out of play credits (refill.png)
 //   error                          paused mid-run (credits 980, the light on #30) with a storage write error (error.png)
 //   settings-paytable-help         the Game info window (settings-paytable-help.png)
-//   fairness, start, loading       not mocked: How results are decided, the Start screen, the loading screen
+//   results-panel, start, loading not mocked: How results are decided, the Start screen, the loading screen
 // Overlays are captured at 1920x1080 only (Game info also at 1280x720 and 768x1024, where it shows tabs / a sheet);
 // the other scenes at all three sizes. --small <scenes> limits the 1280x720 / 768x1024 captures to those scenes
 // (batch 7: --small betting).
@@ -26,7 +26,7 @@ const ROOT = path.resolve(new URL('../../', import.meta.url).pathname);
 const OUT = path.resolve(ROOT, args.out || 'docs/design-v3/batch-7');
 const SMALL = args.small ? new Set(args.small.split(',')) : null;
 const MOCK = path.join(ROOT, 'docs/design-v3');
-const OVERLAYS = ['refill', 'error', 'settings-paytable-help', 'fairness', 'start', 'loading'];
+const OVERLAYS = ['refill', 'error', 'settings-paytable-help', 'results-panel', 'start', 'loading'];
 const MOCKED = new Set(['betting', 'running', 'win-gamble-offer', 'gamble-flip', 'loss', 'double-run-result', 'refill', 'error', 'settings-paytable-help']);
 const SCENES = (args.scenes || ['betting', ...OVERLAYS].join(',')).split(',');
 const SIZES = [[1920, 1080, 'betting.png'], [1280, 720, 'betting-1280x720.png'], [768, 1024, 'betting-768x1024.png']];
@@ -88,7 +88,7 @@ const SCENE = {
     });
   },
   'settings-paytable-help': (page) => page.evaluate(() => window.__rl.game.dispatch({ type: 'OPEN_INFO', tab: 'settings' })),
-  async fairness(page) {
+  async 'results-panel'(page) {
     const r = await page.evaluate(() => document.querySelector('[data-id="icon-results"]').getBoundingClientRect().toJSON());
     await page.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
   },

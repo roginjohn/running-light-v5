@@ -1,6 +1,6 @@
 # Running Light v5 · tier betting layout spec
 
-Status: design only. Nothing in `src/` has changed. Rules come from `math-v5/MATH-SPEC-C.md` (approved). The mocks in
+Status: approved and implemented (v5 batches 4–7). Rules come from `math-v5/MATH-SPEC-C.md` (approved). The mocks in
 `mocks/` are the reference and `png/` holds their renders. `render.mjs` re-renders them and checks the numeric rules
 below; results are in `measurements.json`.
 
@@ -40,9 +40,9 @@ never be doubled past the 300,000 cap.
 4. **Blank squares are marked as no-win in three ways, not by colour alone:** a darker fill with diagonal hatching,
    a dashed border, and a ⊘ glyph. On desktop the square also reads "No win". A legend under the spots reads
    "Blank square · no win · 20 of 50".
-5. **Tier inks reuse v3 colours.** 5x is grey and 10x light grey. 20x and 50x are blue; 50x also has a navy border.
-   100x is white on navy, and 200x is white on navy with a white border. Because the label text always names the
-   tier, colour is never the only cue.
+5. **Every tier has its own token** (`--c-tier-5` … `--c-tier-200`): grey, teal, blue, pink, yellow and white. 50x also has
+   a navy border, 100x sits on navy, and 200x sits on navy with a white border. Because the label text always names
+   the tier, colour is never the only cue.
 6. **Results:**
    - A lit square that pays is solid green.
    - A lit blank square is white, the v3 lit colour.
@@ -61,8 +61,8 @@ never be doubled past the 300,000 cap.
 9. **Ring shapes:** desktop uses 16 × 11 with an 80 px max pitch (74 px squares at 1920 × 1080). Phones use 11 × 16
    (30.5 px squares at 390 × 844), or 12 × 15 when the height is ≤ 700 px (25 px squares at 360 × 640). Phone
    squares drop the "x" and the square number so that "200" fits in 12 px text.
-10. **Two new chips (100 and 500)** need fills. The mocks use violet `#6d28d9` and amber `#b45309`, defined in
-    `mock.css`; they are not in the tokens yet.
+10. **Two new chips (100 and 500)** use the `--c-chip-100` (violet `#8548ef`, moved from the proposed `#6d28d9` by the
+    contrast check) and `--c-chip-500` (amber `#b45309`) tokens.
 
 ## 3. Checks (`render.mjs` → `measurements.json`)
 
@@ -93,9 +93,8 @@ Last run: all 11 pages pass. The smallest tap target is 44 px, the smallest text
    paytable show two decimals per tier?
 3. **Unequal squares.** A blank square is about 7× as likely as the 200x square. The paytable says so in plain words.
    Should the board also hint at it, for example with a stop-share bar on each spot?
-4. **Tier colours.** 20x and 50x share the blue ink (only the border differs), and so do 100x and 200x (white on
-   navy). Should v5 add tier tokens so each tier has its own hue?
-5. **Chip fills for 100 and 500.** Violet and amber are proposals. They need contrast checks and token entries.
+4. **Tier colours.** Resolved in batch 4: each tier has its own token.
+5. **Chip fills for 100 and 500.** Resolved in batch 4: tokens, contrast-checked.
 6. **Rebet.** The mocks drop Rebet on both layouts, because bets are kept after a round and Start again replays
    them. Should it come back as a button after Clear?
 7. **Gamble details.** MATH-SPEC-C only says "as B §7" (cap 300,000). The number of gambles per win and the flip

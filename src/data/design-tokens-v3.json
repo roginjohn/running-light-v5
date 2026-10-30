@@ -35,7 +35,7 @@
     "text-dim": "#6b7580",
     "text-on-light": "#0f1216",
     "text-on-green": "#06210f",
-    "big-number": "#6a7480",
+    "big-number": "#808a96",
     "big-number-win": "#e6eaee",
     "accent-blue": "#0d6efd",
     "accent-blue-press": "#0b5ed7",
@@ -45,7 +45,7 @@
     "accent-red": "#dc2626",
     "accent-red-text": "#f87171",
     "btn-disabled": "#3a3f45",
-    "btn-disabled-text": "#9aa2ab",
+    "btn-disabled-text": "#b0b7bf",
     "scrim": "rgba(15,18,22,0.78)",
     "focus-ring": "#ffffff",
         "tier-5": "#9aa5b1",
@@ -54,6 +54,7 @@
     "tier-50": "#f0abfc",
     "tier-100": "#fde047",
     "tier-200": "#ffffff",
+    "text-on-navy": "#a9bbd6",
     "spot-lost-opacity": 0.85,
     "tile-blank": "#13181e",
     "tile-blank-hatch": "#21262c",
@@ -66,7 +67,7 @@
     "chip-5": "#dc2626",
     "chip-10": "#0d6efd",
     "chip-25": "#16a34a",
-    "chip-50": "#4b5563",
+    "chip-50": "#657080",
     "chip-100": "#8548ef",
     "chip-500": "#b45309",
     "chip-edge": "#ffffff",
@@ -529,10 +530,10 @@
       "kind": "body"
     },
     {
-      "name": "big-number on bg-frame (>= 52px only)",
+      "name": "big-number on bg-frame",
       "fg": "{color.big-number}",
       "bg": "{color.bg-frame}",
-      "kind": "large"
+      "kind": "body"
     },
     {
       "name": "big-number-win on bg-frame",
@@ -541,10 +542,10 @@
       "kind": "body"
     },
     {
-      "name": "btn-disabled-text on btn-disabled (exempt)",
+      "name": "btn-disabled-text on btn-disabled (guidance such as Place a bet stays readable)",
       "fg": "{color.btn-disabled-text}",
       "bg": "{color.btn-disabled}",
-      "kind": "exempt"
+      "kind": "body"
     },
     {
       "name": "text-dim on bg-frame (disabled only, exempt)",
@@ -604,7 +605,133 @@
       "name": "chip-50 numeral",
       "fg": "{color.chip-text-light}",
       "bg": "{color.chip-50}",
-      "kind": "large"
+      "kind": "body"
+    },
+    {
+      "name": "chip-1 fill vs bg-rail",
+      "fg": "{color.chip-1}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-5 fill vs bg-rail",
+      "fg": "{color.chip-5}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-10 fill vs bg-rail",
+      "fg": "{color.chip-10}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-25 fill vs bg-rail",
+      "fg": "{color.chip-25}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-50 fill vs bg-rail",
+      "fg": "{color.chip-50}",
+      "bg": "{color.bg-rail}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-1 fill vs bg-frame",
+      "fg": "{color.chip-1}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-5 fill vs bg-frame",
+      "fg": "{color.chip-5}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-10 fill vs bg-frame",
+      "fg": "{color.chip-10}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-25 fill vs bg-frame",
+      "fg": "{color.chip-25}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-50 fill vs bg-frame",
+      "fg": "{color.chip-50}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-1 fill vs bg-bottombar",
+      "fg": "{color.chip-1}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-5 fill vs bg-bottombar",
+      "fg": "{color.chip-5}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-10 fill vs bg-bottombar",
+      "fg": "{color.chip-10}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-25 fill vs bg-bottombar",
+      "fg": "{color.chip-25}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "chip-50 fill vs bg-bottombar",
+      "fg": "{color.chip-50}",
+      "bg": "{color.bg-bottombar}",
+      "kind": "ui"
+    },
+    {
+      "name": "text-on-navy on bg-panel-navy (gamble panel, help note)",
+      "fg": "{color.text-on-navy}",
+      "bg": "{color.bg-panel-navy}",
+      "kind": "body"
+    },
+    {
+      "name": "text-dim slider rail on bg-frame",
+      "fg": "{color.text-dim}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "text-dim used gamble pip on bg-panel-navy",
+      "fg": "{color.text-dim}",
+      "bg": "{color.bg-panel-navy}",
+      "kind": "ui"
+    },
+    {
+      "name": "text-muted switch edge on bg-frame",
+      "fg": "{color.text-muted}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "accent-blue switch on bg-frame",
+      "fg": "{color.accent-blue}",
+      "bg": "{color.bg-frame}",
+      "kind": "ui"
+    },
+    {
+      "name": "gamble red disc on bg-panel-navy",
+      "fg": "{color.gamble-red}",
+      "bg": "{color.bg-panel-navy}",
+      "kind": "ui"
     },
     {
       "name": "gamble red disc label",

@@ -5,25 +5,11 @@ import path from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { startServer, launch, openGame, sleep } from './harness.js';
 import { setup, playTo, dispatch, settle } from './scenes.js';
+import { layoutCheck as check } from './a11y-audit.js';
 
 const OUT = path.resolve(new URL('../../docs/design-v5/batch-6/', import.meta.url).pathname);
 const BETS = { 100: 5, 50: 10, 20: 25, 10: 50, 5: 100 };
 const SIZES = [[1920, 1080, false], [390, 844, true], [360, 640, true]];
-
-const check = () => {
-  const d = document.documentElement;
-  const off = [...document.querySelectorAll('#r-controls .hit, #r-centre .hit, #r-bar .hit, #r-modal .hit')].filter((e) => {
-    if (e.closest('[inert]')) return false;
-    const b = e.getBoundingClientRect();
-    return b.width < 1 || b.left < 0 || b.top < 0 || b.right > innerWidth || b.bottom > innerHeight;
-  }).map((e) => e.dataset.id);
-  const wide = [...document.querySelectorAll('.spot, .spot span, .btn, .btn span, .bkey, .cp, .ctitle, .csub, .dlg')].filter((e) => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'inline');
-  const past = [...document.querySelectorAll('.spot, .centre, .rail, .dock')].flatMap((p) => {
-    const P = p.getBoundingClientRect();
-    return [...p.querySelectorAll('*')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && (b.top < P.top - 0.5 || b.bottom > P.bottom + 0.5 || b.left < P.left - 4.5 || b.right > P.right + 4.5); });
-  });
-  return { scrollW: d.scrollWidth, scrollH: d.scrollHeight, w: innerWidth, h: innerHeight, off, clipped: [...wide, ...past].map((e) => e.className) };
-};
 
 const prepare = (page) => setup(page, { balance: 10000, history: [], bets: BETS, chip: 25 });
 const SCENES = {

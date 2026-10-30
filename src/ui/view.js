@@ -69,7 +69,7 @@ export function credits(s, ui, L) {
   const pending = ['GAMBLE_OFFER', 'GAMBLE'].includes(s.phase) ? s.round.currentWin : 0;
   const key = L.phone ? (pending ? '' : 'Play credits') : 'Credits';
   const delta = ui.delta ? `<span class="delta">+${fmt(ui.delta)}</span>` : pending ? `<span class="delta">+${fmt(pending)} pending</span>` : '';
-  return `<div class="credits" role="status" aria-label="Play credits ${fmt(s.balance)}" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(HEAD_H)}"><span class="k">${key}</span><span class="v">${delta}<b data-role="balance">${fmt(bal)}</b></span></div>`;
+  return `<div class="credits" role="group" aria-label="Play credits ${fmt(s.balance)}" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(HEAD_H)}"><span class="k">${key}</span><span class="v">${delta}<b data-role="balance">${fmt(bal)}</b></span></div>`;
 }
 
 // ------------------------------------------------------------------ controls (rail / dock), v3 batch 3
@@ -79,13 +79,13 @@ function chipRow(s, c, keys) {
   const off = c.mode !== 'bet' || !c.canBet;
   return `<div class="chips" role="radiogroup" aria-label="Chip value">${CHIPS.map((v, i) => {
     const sel = s.chip === v;
-    return `<button class="chip c${v} hit${sel ? ' sel' : ''}" data-id="chip-${v}" role="radio" aria-checked="${sel}" aria-label="Chip ${v}${keys ? `, key ${i + 1}` : ''}"${dis(off)}>${chipFace(v)}</button>`;
+    return `<button class="chip c${v} hit${sel ? ' sel' : ''}" data-id="chip-${v}" role="radio" aria-checked="${sel}" tabindex="${sel ? 0 : -1}" aria-label="Chip ${v}${keys ? `, key ${i + 1}` : ''}"${dis(off)}>${chipFace(v)}</button>`;
   }).join('')}</div>`;
 }
 
 /** Total bet card: "190 / 1,000" and the limit per spot (tiers/SPEC.md §2.7). Phones show the total on Start only. */
 export function totalCard(c) {
-  return `<div class="tbet"><span class="k">Total bet</span><output class="v" data-role="total" aria-label="Total bet ${c.total} of ${MAX_PER_ROUND} credits"><b>${fmt(c.total)}</b> / ${fmt(MAX_PER_ROUND)}</output><span class="k rl" data-role="bet-hint">Max ${fmt(MAX_PER_TIER)} per spot</span></div>`;
+  return `<div class="tbet"><span class="k">Total bet</span><span class="v" role="group" data-role="total" aria-label="Total bet ${c.total} of ${MAX_PER_ROUND} credits"><b>${fmt(c.total)}</b> / ${fmt(MAX_PER_ROUND)}</span><span class="k rl" data-role="bet-hint">Max ${fmt(MAX_PER_TIER)} per spot</span></div>`;
 }
 
 export function lastWin(s, ui, c) {
@@ -133,8 +133,8 @@ export function topRow(s, ui, L) {
   const bets = ui.betTotals || [];
   const lbs = bets.map((e, i) => `<span class="lb${i === 0 ? ' new' : ''}">${fmt(e.t)}</span>`).join('');
   return `<div class="toprow" style="left:${px(t.x)};top:${px(t.y)};width:${px(t.w)};height:${px(t.h)}">
-    <div class="tg" data-role="history" aria-label="Last results, newest first: ${resLabel || 'none yet'}"><span class="k">Last results:</span><span class="tps">${res || '<span class="none">None yet</span>'}</span></div>
-    <div class="tg lastbets" data-role="last-bets" aria-label="Last bets, newest first: ${bets.length ? bets.map((e) => e.t).join(', ') : 'none yet'}"><span class="k">Last bets:</span><span class="tps">${lbs || '<span class="none">None yet</span>'}</span></div></div>`;
+    <div class="tg" role="group" data-role="history" aria-label="Last results, newest first: ${resLabel || 'none yet'}"><span class="k">Last results:</span><span class="tps">${res || '<span class="none">None yet</span>'}</span></div>
+    <div class="tg lastbets" role="group" data-role="last-bets" aria-label="Last bets, newest first: ${bets.length ? bets.map((e) => e.t).join(', ') : 'none yet'}"><span class="k">Last bets:</span><span class="tps">${lbs || '<span class="none">None yet</span>'}</span></div></div>`;
 }
 
 function actionRow(s, c) {
@@ -356,7 +356,7 @@ function gamblePanel(s, ui, c, L) {
   return `<div class="gpanel" role="group" aria-label="Double or nothing">
     <div class="ghead"><b>Double or nothing · flip ${flipNo}</b><span class="gl">${pips(shown)}${leftText(shown)}</span></div>
     <div class="gdiscs" role="radiogroup" aria-label="Pick a colour">${disc('red')}${mid}${disc('white')}</div>
-    <div class="gmsg" data-role="gamble-instr" aria-live="polite">${msg}</div>
+    <div class="gmsg" data-role="gamble-instr">${msg}</div>
     <div class="gcards"${loss ? ' data-role="gamble-loss"' : ''}>${cards}</div>${recap ? `<div class="grec">${recap}</div>` : ''}</div>
     <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is offered on wins up to ${fmt(GAMBLE_MAX_WIN)}, so a win never passes ${fmt(GAMBLE_CAP)}.`}</div>`;
 }
@@ -393,7 +393,7 @@ export function centre(s, ui, c, L) {
   const st = `<span class="cp ${M.status[0]}" data-role="status">${M.status[1]}</span>`;
   if (M.gamble) return box(' gam', `<div class="cps">${st}<span class="cp mint">${M.won}</span></div>${gamblePanel(s, ui, c, L)}`);
   const dr = `<span class="cp${M.dr ? ' on' : ''}">${M.dr ? 'Double Run on' : `Double Run · 1 in ${DOUBLE_RUN_ONE_IN}`}</span>`;
-  const txt = `<div class="ctxt" aria-live="polite"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>`;
+  const txt = `<div class="ctxt"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>`;
   const legend = `<div class="bkey"><i class="sw" aria-hidden="true"></i>Blank square · no win · ${BLANK_COUNT} of 50</div>`;
   if (M.result) {
     const extra = (M.extra || []).map((t) => `<span class="cp ${M.status[0]}">${t}</span>`).join('');
@@ -431,7 +431,7 @@ export function toastHtml(t, L) {
   else { w = L.rail.w - 2 * (L.bp === 'desktop-xl' ? 24 : 14); l = L.rail.x + (L.rail.w - w) / 2; tp = L.rail.y + L.rail.h - (L.bp === 'desktop-xl' ? 170 : 130); }
   const kind = t.kind === 'ok' ? 'ok' : t.kind === 'info' ? 'info' : '';
   const ic = kind === 'ok' ? 'check' : kind === 'info' ? 'info' : 'alert';
-  return `<div class="toast ${kind}${t.out ? ' out' : ''}" role="status" style="left:${px(l)};top:${px(tp)};width:${px(w)};padding:12px 14px;font-size:${px(f)}">${icon(ic)}<span data-role="toast">${esc(t.text)}</span></div>`;
+  return `<div class="toast ${kind}${t.out ? ' out' : ''}" style="left:${px(l)};top:${px(tp)};width:${px(w)};padding:12px 14px;font-size:${px(f)}">${icon(ic)}<span data-role="toast">${esc(t.text)}</span></div>`;
 }
 
 // ------------------------------------------------------------------ dialogs (v3 batch 6)
@@ -512,10 +512,10 @@ export function infoModal(s, ui, L) {
   const tab = s.info;
   const body = { settings: () => settingsBody(s, ui), paytable: () => paytableBody(L), help: helpBody };
   const title = INFO.find((x) => x[0] === tab)[1];
-  const tabs = `<div class="itabs" role="tablist">${INFO.map(([id, l]) => `<button class="hit${tab === id ? ' on' : ''}" data-id="tab-${id}" role="tab" aria-selected="${tab === id}">${l}</button>`).join('')}</div>`;
+  const tabs = `<div class="itabs" role="tablist" aria-label="Game info sections">${INFO.map(([id, l]) => `<button class="hit${tab === id ? ' on' : ''}" data-id="tab-${id}" id="tab-${id}" role="tab" aria-selected="${tab === id}" aria-controls="info-panel">${l}</button>`).join('')}</div>`;
   const foot = L.dockMode ? '<span>Play credits only</span><span>No real money value</span>' : '<span>Esc closes this window</span><span>Outcome is decided and saved before the light runs</span>';
   return dialog(L, { w: 920, label: title, cls: ' info' }, `<div class="ihead"><h2>${title}</h2><button class="ibtn hit x" data-id="close" aria-label="Close (Esc)">${icon('x')}</button></div>
-    ${tabs}<div class="ione" role="tabpanel"><section class="isec" aria-label="${title}">${body[tab]()}</section></div><div class="ifoot">${foot}</div>`);
+    ${tabs}<div class="ione" id="info-panel" role="tabpanel" aria-labelledby="tab-${tab}"><section class="isec">${body[tab]()}</section></div><div class="ifoot">${foot}</div>`);
 }
 
 function settingsBody(s, ui) {
@@ -523,13 +523,13 @@ function settingsBody(s, ui) {
   const tg = (id, on, label, d = false) => `<button class="tgl hit${on ? ' on' : ''}" data-id="${id}" role="switch" aria-checked="${on}" aria-label="${label}"${dis(d)}><i></i></button>`;
   const sl = (id, key, label) => `<span class="sl"><span class="slider hit" data-id="${id}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${st[key]}"><i style="width:${st[key]}%"></i><b style="left:${st[key]}%"></b></span><span class="v">${st[key]}</span></span>`;
   const row = (a, sub, ctl, off = false) => `<div class="srow${off ? ' off' : ''}"><span><b>${a}</b><br>${sub}</span>${ctl}</div>`;
-  const keys = [['Space', 'Start'], ['1–7', 'Chip'], ['Enter · Backspace', 'Add · remove on a spot'], ['Z · C', 'Undo · Clear'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
+  const keys = [['Space', 'Start'], ['1–7', 'Chip'], ['← →', 'Next chip, on a focused chip'], ['Enter · Backspace', 'Add · remove on a spot'], ['Z · C', 'Undo · Clear'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
   let h = '';
   if (ui.settingsReset) h += `<p class="inote" data-role="settings-reset">Your saved settings couldn’t be read, so they were reset to the defaults. Your credits and rounds were not affected.</p>`;
   h += row('Sound', 'Effects for the light, wins and gamble · M', tg('tg-mute', !st.mute, 'Sound'));
   h += row('Music', 'Background loop', sl('sl-music', 'music', 'Music volume'));
   h += row('Sound effects', 'Clicks, light, wins', sl('sl-sfx', 'sfx', 'Sound effects volume'));
-  h += row('Reduced motion', 'Short light run, no flip animation', tg('tg-rm', st.reducedMotion, 'Reduced motion'));
+  h += row('Reduced motion', ui.sysReduced ? 'On: follows your system setting' : 'Short light run, no flip animation', tg('tg-rm', ui.sysReduced || st.reducedMotion, 'Reduced motion', ui.sysReduced));
   h += row('Turbo', 'Placeholder – pending approval', tg('tg-turbo', false, 'Turbo (placeholder, not available)', true), true);
   h += `<div class="keylist"><h4 class="isub">Keys</h4><table class="ikeys">${keys.map(([a, b]) => `<tr><td>${a.split(' · ').map(kc).join(' ')}</td><td>${b}</td></tr>`).join('')}</table></div>`;
   return h;

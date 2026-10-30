@@ -9,7 +9,7 @@ Branch `v3/batch-3-rail`. Not committed. This batch restyles every rail control 
 | "CHIP · selected: 5" caps label, v2 chip SVGs (Plus Jakarta Sans 800 numerals, gradient rims), key numbers under the chips, selected chip lifted with an amber glow | **Chip value** label; flat v3 chips drawn inline (`icons.js chipFace`: `chip-*` fill, 8 white edge stripes, value in Poppins 700), 34 px (40 px on tablet). Selected = 2 px white ring on a 2 px gap; no lift, no glow. Disabled = 40 % opacity. Keys 1–5 are still in the aria-label and Help |
 | "TOTAL BET 20 / 200" card with a progress bar and a note | **Bet field** (40 px, bg-input, border-input, radius 6): green coin dot, the **total bet on the board**, then **1/2** and **x2**. Under it: "6 squares · 20 / 200 per round" (or "1–10 per square · max 200 per round" with no bets) |
 | Start: light-blue (`#6ea8fe`) gradient look with dark text, 64 / 56 px | **Start**: accent-blue `#0d6efd`, white text, hover/press `#0b5ed7`, 52 px (48 at 1280×720, 56 on tablet). Label 14/700, sub-line 12/600 ("20 credits on 6 squares · Space") |
-| Collect (light blue) + Gamble ×2 (grey card) stacked | **Collect 2,400 / Add to credits · Enter**: accent-green `#16a34a` with dark `#06210f` text (white on this green fails AA). **Gamble ×2 / Fair 50/50 · 3 of 3 left · G**: accent-blue. Locked states (Running…, In gamble, Paying…, Place a bet) use btn-disabled `#3a3f45` / `#9aa2ab` |
+| Collect (light blue) + Gamble ×2 (grey card) stacked | **Collect 2,400 / Add to credits · Enter**: accent-green `#16a34a` with dark `#06210f` text (white on this green fails AA). **Gamble ×2 / 50/50 · 3 of 3 left · G**: accent-blue. Locked states (Running…, In gamble, Paying…, Place a bet) use btn-disabled `#3a3f45` / `#9aa2ab` |
 | Undo / Clear / Rebet with v2 raised fills; Rebet highlight with an amber glow ring | 32 px secondary buttons (bg-input, border-input, radius 6), disabled text = text-dim. Rebet highlight = accent-blue border only |
 | — | **Last bets**: the total bet of each of the last 5 rounds, newest first (newest highlighted) |
 | "LAST WIN" card (big number, Uncollected tag wrapping) | **Rail note** (component sheet): "Uncollected win 2,400 / collect it or gamble it", "Last win 0 / no win this round", "This round … / so far · second light running", "gamble lost". It only shows once there is something to report |
@@ -55,7 +55,7 @@ Removed from the rail: chip-selected glow and lift, Rebet amber glow ring, the b
 - `npm run test:ui`: **35/35 pass** (31 before + 4 rail tests). No console errors, no failed or external requests, fonts local. Layout checks pass at 1920×1080, 1280×720, 1024×768 and 768×1024, plus the 390×844 fallback.
 - `npm run sim:quick`: RTP **95.613%** (strategy A) / **95.656%** (strategy B, max gamble), both inside 95.45 ± 0.3: PASS. Double Run 3.99% / 4.02%, gamble 49.97%, E2 PASS. These match batch 2 exactly (same seeds, engine unchanged).
 - `git diff main -- src/engine`: empty.
-- Fairness wording rule: the existing unit and UI checks (`/provabl/i`) cover the new files and pass.
+- Wording rule: the existing unit and UI checks (`/provabl/i`) cover the new files and pass.
 
 ## Differences from the mockup
 - **No Manual/Auto tabs.** There were none in the game to restyle, and Auto has no function (open question 6). The rail starts with the Bet amount row instead. Add it once Q6 is decided.

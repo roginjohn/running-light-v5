@@ -1,6 +1,6 @@
 # Running Light v5: Development Spec (tier betting)
 
-Status: plan only. No code has been written and nothing has been pushed. Simulated play credits only. This spec makes no claim that the game is provably fair, secure, or compliant.
+Status: plan only. No code has been written and nothing has been pushed. Simulated play credits only. This spec makes no claims about the game's outcomes, security or regulatory status.
 Repo: `roginjohn/running-light`, base `main` @ a760ce5 (tag `v3-batch-7`, live on gh-pages 353326d).
 Inputs:
 - `math-v5/MATH-SPEC-C.md` (approved)
@@ -25,7 +25,7 @@ Non-goals:
 - Christmas or any seasonal theme
 - Real money, payments or accounts
 - A server-side RNG
-- Fairness, security or compliance claims
+- Claims about outcome verification, security or regulatory status
 - A redesign of the gamble flow (it stays as in v3, only the cap changes)
 - Landscape phone and tablet layouts beyond the current responsive behaviour (open item)
 - Sound redesign
@@ -107,7 +107,7 @@ Other config changes:
    - In Double Run, the lit squares carry "1" and "2" badges and the headline lists both lights. If both land on the same tier, the spot shows the total and "×2".
    - When nothing wins, a red "No win" pill shows with the "Blank square" headline (or a tier with no bet), and the bets are kept.
 8. **Paytable:** a 920 px dialog on desktop and a full-screen card sheet on phones. It shows tier, squares, square numbers, the chance per light and the share of stops, plus Blank and Total rows. It shows **one 95.4% payback figure**, "30 tier + 20 blank = 50", the note that squares are not equally likely, and the Double Run note ("In Double Run (1 in 25 rounds) a second light can pay too, so a round hits slightly more often").
-9. **Text:** help explains multiplier betting and blanks, says play credits only, and contains no fairness or compliance wording. A banned-word check runs in tests.
+9. **Text:** help explains multiplier betting and blanks, says play credits only, and contains no outcome-verification or regulatory claims. A banned-word check runs in tests.
 10. **Performance:** the v3 budgets are kept. No heavy animation. Fonts load locally and the page makes no external requests.
 
 ## 4. Accessibility

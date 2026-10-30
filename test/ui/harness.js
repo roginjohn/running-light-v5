@@ -30,13 +30,15 @@ export async function launch() {
   return puppeteer.launch({
     executablePath: process.env.CHROME || '/usr/bin/google-chrome',
     headless: 'new',
-    args: ['--no-sandbox', '--disable-gpu', '--hide-scrollbars', '--autoplay-policy=no-user-gesture-required'],
+    // a page that Chrome treats as backgrounded runs rAF late or not at all, which is what the timing tests measure
+    args: ['--no-sandbox', '--disable-gpu', '--hide-scrollbars', '--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'],
   });
 }
 
 /** Open the game in test mode. opts: { seed, timeScale, noStorage, width, height, reducedMotion, keepStorage, startScreen, presetStorage, touch } */
 export async function openGame(browser, url, opts = {}, page = null) {
   page = page || (await browser.newPage());
+  await page.bringToFront();
   const issues = page.__issues || [];
   if (!page.__issues) {
     page.__issues = issues;

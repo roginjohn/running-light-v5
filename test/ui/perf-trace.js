@@ -20,7 +20,7 @@ const when = (page, fn, arg) => page.waitForFunction(fn, { timeout: 30000, polli
 
 async function one(label, throttle) {
   const page = await openGame(browser, url, { seed: 3, timeScale: 1, width: 1920, height: 1080 });
-  await setup(page, { balance: 1000, bets: { 3: 2, 8: 1, 13: 5, 21: 2, 27: 5, 33: 5 }, chip: 5 });
+  await setup(page, { balance: 1000, bets: { 5: 5, 10: 5, 20: 5, 50: 2, 100: 2, 200: 1 }, chip: 5 });
   await force(page, 13);
   const cdp = await page.createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });

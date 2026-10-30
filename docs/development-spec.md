@@ -9,7 +9,7 @@ Project root: `/workspace/casino-games/running-light/` · **Write all code to `/
 ---
 ## A. Project Overview
 - **Title:** Running Light (working title; keep the logo as live text so it is easy to rename).
-- **Concept:** a digital version of the Philippine perya (local fair) "Running Light" game. The player bets play credits on numbered squares of a 50-square bulb track. A light runs around the track, slows and stops on one square. Bets on that square win its multiplier. Rare **Double Run** rounds light a second square. After any win the player may **gamble** (double-or-nothing, pick red or white).
+- **Concept:** a digital version of the Philippine perya (local carnival) "Running Light" game. The player bets play credits on numbered squares of a 50-square bulb track. A light runs around the track, slows and stops on one square. Bets on that square win its multiplier. Rare **Double Run** rounds light a second square. After any win the player may **gamble** (double-or-nothing, pick red or white).
 - **Objectives:** a polished, faithful reproduction of the approved mockups. Exact, testable math. Robust state handling (no duplicate actions, no redraw on refresh).
 - **Platform:** **desktop browser only**, 16:9, 1920×1080 reference stage, scaled uniformly (letterboxed) down to a 1280×720 minimum. Mouse + keyboard. Current Chrome, Edge and Firefox (Safari is best-effort).
 - **Credits:** **simulated play credits only.** No real money, no payments, no purchases, no wallets, no cash-out, no accounts, no backend.
@@ -60,9 +60,9 @@ The machine-readable source is `design/session-one/design-tokens.json → board-
 
 ### B3. Gamble (double-or-nothing) [approved]
 - Offered after any round with `win > 0` (state GAMBLE_OFFER). The player chooses **Collect** or **Gamble ×2** (in the right panel, replacing START).
-- Gamble opens the **flip modal**. The player must **pick RED or WHITE** (no default on flip 1; the pick persists between flips and can be changed before each flip). Pressing GAMBLE then draws `result = randInt(2) === 0 ? 'red' : 'white'` (exactly fair 50/50). The draw is stored **before** the 1.2 s reveal.
+- Gamble opens the **flip modal**. The player must **pick RED or WHITE** (no default on flip 1; the pick persists between flips and can be changed before each flip). Pressing GAMBLE then draws `result = randInt(2) === 0 ? 'red' : 'white'` (exactly 50/50). The draw is stored **before** the 1.2 s reveal.
 - Match → `win = win × 2`, `gamblesUsed += 1`. Back to the offer inside the modal (pick again or Collect). Mismatch → `win = 0` → PAYOUT(0).
-- **Max 3 gambles** per round. **Cap 30,000:** Gamble is disabled (tooltip "Doubling would exceed the 30,000 cap") when `2 × win > 30,000`. It is also disabled after 3 gambles (tooltip). The cap never truncates a win; it only disables further gambling. A fair gamble leaves RTP unchanged.
+- **Max 3 gambles** per round. **Cap 30,000:** Gamble is disabled (tooltip "Doubling would exceed the 30,000 cap") when `2 × win > 30,000`. It is also disabled after 3 gambles (tooltip). The cap never truncates a win; it only disables further gambling. An even 50/50 gamble leaves RTP unchanged.
 - Collect is always available in GAMBLE_OFFER and in the modal between flips.
 
 ### B4. Bets, chips, credits [approved]
@@ -169,7 +169,7 @@ Paytable, multipliers, counts, weights, square positions; Double Run probability
 - **Front end / back end:** front end only. No server, APIs, analytics, telemetry or external integrations. No network requests at runtime (fonts/assets local).
 - **Data model / state management:** a pure logic core (`engine`): config (paytable, layout, weights, limits), `rng` interface, `drawRound`, `payout`, `gamble`, bet operations with limit clamping, and a state machine with `dispatch` + guards. Persistence adapter (localStorage / in-memory). The UI layer subscribes to state and never computes outcomes.
 - **Validation:** all bet operations clamp and validate. Reject non-integers. Storage data is validated (B6).
-- **Randomness:** as B2/B3. Document the mapping, and do not claim "provably fair", "certified" or "compliant".
+- **Randomness:** as B2/B3. Document the mapping, and do not make outcome-verification, certification or regulatory claims.
 - **Errors:** uncaught errors and asset/storage failures → ERROR state (09a) without losing a pending round (it is recovered on reload).
 - **Integrity:** balance never negative, and never changes except at START/PAYOUT/Refill. Each round is settled once. Displayed results always equal stored results (dev-mode assertion: final animated index === stored stop).
 - **Performance:** steady 60 fps during the light run on a typical desktop. First load < 3 s locally. No memory growth over 1,000 rounds (history capped at 50 in storage, 10 shown).
@@ -191,13 +191,13 @@ Run all tests and save the outputs in `game/test-results/`. Report pass/fail cou
 2. Weights/mapping: `weightedPick` maps every `r` in 0..2092 to the correct square (exhaustive check). `randInt` rejection logic is unbiased (boundary tests with a mocked uint32 source).
 3. Double Run: trigger iff `randInt(25)===0`. `s2 ≠ s1` always (exhaustive over every s1 and r). The conditional distribution of s2 equals w_j/(2093−w_{s1}).
 4. Payout: single win, loss, Double Run hitting 0/1/2 bet squares, max 28,800 case (10 on #8 + 10 on #21 with Double Run), integer results.
-5. Gamble: fair mapping (randInt(2)); match doubles, mismatch zeroes; no gamble without a pick; max 3; disabled when 2×win > 30,000 (e.g. win 15,000 allowed → 30,000; win 15,001 blocked); Collect always works.
+5. Gamble: even mapping (randInt(2)); match doubles, mismatch zeroes; no gamble without a pick; max 3; disabled when 2×win > 30,000 (e.g. win 15,000 allowed → 30,000; win 15,001 blocked); Collect always works.
 6. Bet limits: per square 10, per round 200, balance limit, clamping amounts and toasts, remove floor 0, Undo/Clear/Rebet behaviour incl. unaffordable Rebet.
 7. State transitions: every valid transition, and every invalid action rejected in every state (table-driven). Duplicate START/Collect/Gamble/Refill/Continue within the same tick produce exactly one effect. `event.repeat` ignored.
 8. Recovery: a simulated reload at every phase (SPINNING, RESOLVING, DOUBLE_RUN, GAMBLE_OFFER, GAMBLE before and after the draw, PAYOUT before and after the credit) restores the same outcome. There is no redraw and no double credit. Balance is consistent. Corrupt storage → ERROR → reset of only that key.
 9. Refill: only when balance < 1 and no pending round; resets to exactly 1,000; unlimited.
 
-**E2. Seeded simulation through the real game logic:** a script that drives the actual engine/state machine (not a reimplementation) with a seeded RNG, for **at least 1,000,000 rounds** (recommended 5,000,000: the standard error for the all-50 strategy is ≈0.19 pp at 1M and ≈0.085 pp at 5M). Strategy A: 1 credit on all 50 squares, always Collect, with balance kept topped up (simulation hook). Pass: **overall RTP within 95.45% ± 0.3 pp**. Also report the per-tier RTP and hit rate against B1 (z-scores), the Double Run rate against 4%, and s1==s2 occurrences (must be 0). Strategy B: always gamble the maximum allowed. RTP must stay within the same band (fairness) and the gamble win rate must be 50% ± 0.2 pp. Record the seed, round count, runtime and the full output.
+**E2. Seeded simulation through the real game logic:** a script that drives the actual engine/state machine (not a reimplementation) with a seeded RNG, for **at least 1,000,000 rounds** (recommended 5,000,000: the standard error for the all-50 strategy is ≈0.19 pp at 1M and ≈0.085 pp at 5M). Strategy A: 1 credit on all 50 squares, always Collect, with balance kept topped up (simulation hook). Pass: **overall RTP within 95.45% ± 0.3 pp**. Also report the per-tier RTP and hit rate against B1 (z-scores), the Double Run rate against 4%, and s1==s2 occurrences (must be 0). Strategy B: always gamble the maximum allowed. RTP must stay within the same band and the gamble win rate must be 50% ± 0.2 pp. Record the seed, round count, runtime and the full output.
 
 **E3. UI interaction tests (Playwright or equivalent):** place/remove bets by mouse and keyboard; limit toasts; START locks squares and controls; double-click START → one round; a full single-win → gamble (pick R/W, G, Space on the focused GAMBLE, Enter Collect) → payout flow; loss keeps bets; Rebet ghosts; refill flow at balance 0; mute/volume persist across a reload; reduced-motion mode; Esc closes only info modals; reload mid-spin → Recovery → same result.
 
@@ -230,4 +230,4 @@ Run all tests and save the outputs in `game/test-results/`. Report pass/fail cou
 10. Do not contact Rogin or other agents.
 
 ## H. Return to the Online Casino Game Specialist
-Return results **directly to the Online Casino Game Specialist (agent id `7cde1a84-18b1-4ca9-82f8-bfdbfe60ec03`)**. Write `game/IMPLEMENTATION-REPORT.md` and include in your reply: implementation status; chosen stack and why; completed features; test results (counts, simulation RTP with seed and rounds, gamble fairness); screenshot comparison notes; deviations from this spec; remaining defects/limitations; open questions/blockers; how to run; and the file list. Do not claim results you did not run.
+Return results **directly to the Online Casino Game Specialist (agent id `7cde1a84-18b1-4ca9-82f8-bfdbfe60ec03`)**. Write `game/IMPLEMENTATION-REPORT.md` and include in your reply: implementation status; chosen stack and why; completed features; test results (counts, simulation RTP with seed and rounds, gamble win rate); screenshot comparison notes; deviations from this spec; remaining defects/limitations; open questions/blockers; how to run; and the file list. Do not claim results you did not run.

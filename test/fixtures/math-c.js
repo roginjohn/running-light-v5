@@ -71,8 +71,10 @@ export const V1_KEYS = Object.freeze({
 export const CHIP_FILLS = Object.freeze({ 100: '#8548ef', 500: '#b45309' });
 export const CONTRAST_MIN = Object.freeze({ text: 4.5, ui: 3 });
 
-// Same list as docs/design-v5/tiers/render.mjs.
+// The banned wording, also used by docs/design-v5/tiers/render.mjs. This is the only tracked file that may spell the
+// removed word: test/unit/v5/text.test.js scans every other tracked text file for it (WORDING_REMOVED).
 export const BANNED = /fair|provabl|complian|certif|regulat|christmas|xmas|santa|snow|festive|real[- ]money win/i;
+export const WORDING_REMOVED = /fair/i;
 
 /** Stop chance of tier t for one light: count × weight / 10476. */
 export const pStopTier = (t) => (COUNT_BY_TIER[t] * WEIGHT_BY_TIER[t]) / TOTAL_WEIGHT;

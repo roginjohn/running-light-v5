@@ -38,7 +38,7 @@ Decisions kept as asked: **Square numbers**, **Keyboard hints** and **Auto play*
 - `npm run sim:quick` (1M rounds): RTP **95.613%** (A) / **95.656%** (B), both PASS (95.45 ± 0.3). Double Run 3.986% / 4.024%, s1 = s2 never, gamble 49.972% PASS, E2 PASS. Identical to batch 6 (same seeds, engine unchanged). CONTRIBUTING asks for the full `npm run sim` only in batches 4 and 6, so it was not run.
 - `git diff main -- src/engine`: empty.
 - Production build (`npm run build`) loads with no console output of any kind (`test/ui/smoke.js` logs every message type) and is the build every UI test runs against.
-- No forbidden fairness wording anywhere (unit and UI tests from batch 6 still pass).
+- No forbidden wording anywhere (unit and UI tests from batch 6 still pass).
 
 ## Performance
 `npm run build && npm run perf:trace` (1920×1080: light run → win reveal → Gamble ×2, pick, one flip → Collect), **3 consecutive runs** on the final code. Longest task / long tasks > 50 ms:

@@ -124,7 +124,7 @@ The long run uses an in-memory backend that keeps written objects by reference, 
 was ~85% of runtime. The engine code path is unchanged. As a cross-check, a **1,000,000-round-per-strategy run with
 real JSON-string storage** (`test-results/simulation-json-storage-1M/`) also passed: A 95.613% (SE 0.169 pp),
 B 95.656% (SE 0.542 pp), gamble 49.972%, s1==s2 = 0. Note that B's standard error at 1M (0.54 pp) is larger than the
-±0.3 pp band, so the 40M run is the meaningful fairness check for B.
+±0.3 pp band, so the 40M run is the meaningful RTP check for B.
 
 ## 5. Screenshot comparison notes
 

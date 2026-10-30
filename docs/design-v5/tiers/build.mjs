@@ -1,6 +1,6 @@
 // Running Light v5 tier-betting mocks: writes the static pages in mocks/*.html (all share ../mock.css).
-// Numbers come from math-v5/MATH-SPEC-C.md (approved). They are written out here because src/engine/config.js
-// still holds the v3/v4 per-square rules. One responsive page per state: desktop (>= 1200 wide) and phones
+// Numbers come from MATH-SPEC-C.md (approved), written out so the mocks stay a separate reference from src/engine/config.js.
+// One responsive page per state: desktop (>= 1200 wide) and phones
 // render from the same file through mock.css media queries. Run: node docs/design-v5/tiers/build.mjs
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -125,7 +125,7 @@ function paytable() {
       <h3>Double Run</h3>
       <p class="body">About 1 in ${DOUBLE_RUN_ONE_IN} rounds, a second light runs and stops on a different square. Each light pays on its own, so both lights on your tier pay twice.</p>
       <h3>Limits</h3>
-      <ul class="lims body"><li>Up to ${fmt(MAX_SPOT)} on each tier spot and ${fmt(MAX_ROUND)} per round</li><li>Chips ${CHIPS.join(', ')}</li><li>Start with ${fmt(START)} play credits; free refill to ${fmt(START)}</li><li>Gamble is off above ${fmt(GAMBLE_CAP)}</li><li>Simulated credits only, no real money</li></ul>
+      <ul class="lims body"><li>Up to ${fmt(MAX_SPOT)} on each tier spot and ${fmt(MAX_ROUND)} per round</li><li>Chips ${CHIPS.join(', ')}</li><li>Start with ${fmt(START)} play credits; free refill to ${fmt(START)}</li><li>Gamble on wins up to ${fmt(GAMBLE_CAP / 2)}, 3 times per win, ${fmt(GAMBLE_CAP)} cap</li><li>Simulated credits only, no real money</li></ul>
     </div>
   </section>`;
 }

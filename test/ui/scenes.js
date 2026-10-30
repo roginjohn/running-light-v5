@@ -40,6 +40,26 @@ export async function settle(page, timeout = 15000) {
   await sleep(100);
 }
 
+/** START, timed inside the page from the dispatch to the first frame in the wanted phase, so the time puppeteer takes to
+ *  poll is not counted. maxGap is the longest frame seen: a loaded machine can stall a frame, and the run can only
+ *  end on a frame, so a run may overshoot by one such gap. */
+export function timeToPhase(page, phases) {
+  return page.evaluate((want) => new Promise((done, fail) => {
+    const g = window.__rl.game;
+    const t0 = performance.now();
+    let last = t0, maxGap = 0;
+    const r = g.dispatch({ type: 'START' });
+    if (!r.ok) { fail(new Error(`START rejected: ${r.reason}`)); return; }
+    const tick = (t) => {
+      maxGap = Math.max(maxGap, t - last);
+      last = t;
+      if ([].concat(want).includes(g.state.phase)) done({ ms: Math.round(performance.now() - t0), maxGap: Math.round(maxGap) });
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }), phases);
+}
+
 export async function playTo(page, s1, s2 = null, target = ['GAMBLE_OFFER', 'BETTING']) {
   await force(page, s1, s2);
   await page.evaluate(() => window.__rl.app.ui.startLocked = false);
