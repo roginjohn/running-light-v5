@@ -73,6 +73,19 @@ test('tokens: all text on a faded losing spot meets 4.5:1 after compositing over
   assert.match(css, /\.spot\.lost :is\(\.sq, \.sb\) \{ color: var\(--c-text-primary\); \}/, 'no text-muted on a faded spot');
 });
 
+test('tokens: faded spot borders meet 3:1 against the spot fills and the frame', async () => {
+  const { contrastChecks } = await gen();
+  const T = await tokens();
+  const borders = contrastChecks(T).filter((c) => c.name.includes('faded spot border'));
+  assert.deepEqual(borders.map((c) => c.name.split(' ')[3]), ['bg-card', 'bg-panel-navy', 'bg-frame']);
+  for (const c of borders) {
+    assert.equal(c.need, C.CONTRAST_MIN.ui, c.name);
+    assert.ok(c.ratio >= C.CONTRAST_MIN.ui, `${c.name}: ${c.ratio}`);
+  }
+  const css = readFileSync(new URL('../../../src/styles.css', import.meta.url), 'utf8');
+  assert.match(css, /\.spot\.lost \{ border-color: var\(--c-accent-blue-text\); \}/);
+});
+
 test('tokens: the old v3 tier tokens (24 … 1920) are gone', async () => {
   const T = await tokens();
   for (const t of [24, 96, 480, 960, 1920]) assert.equal(T.color[`tier-${t}`], undefined, `tier-${t}`);

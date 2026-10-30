@@ -458,6 +458,9 @@
     { "name": "text-primary labels on bg-panel-navy (faded losing spot)", "fg": "{color.text-primary}", "bg": "{color.bg-panel-navy}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "body" },
     { "name": "accent-blue-text bet on bg-card (faded losing spot)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-card}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "body" },
     { "name": "accent-blue-text bet on bg-panel-navy (faded losing spot)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-panel-navy}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "body" },
+    { "name": "accent-blue-text border on bg-card (faded spot border)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-card}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "ui" },
+    { "name": "accent-blue-text border on bg-panel-navy (faded spot border)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-panel-navy}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "ui" },
+    { "name": "accent-blue-text border on bg-frame (faded spot border)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-frame}", "opacity": "{color.spot-lost-opacity}", "over": "{color.bg-frame}", "kind": "ui" },
     { "name": "text-primary hint on btn-disabled (Start over the balance)", "fg": "{color.text-primary}", "bg": "{color.btn-disabled}", "kind": "body" },
     {
       "name": "text-primary on bg-frame",
