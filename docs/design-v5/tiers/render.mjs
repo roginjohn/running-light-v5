@@ -9,12 +9,12 @@ import { dirname, join, normalize, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { build } from './build.mjs';
+import { BANNED } from '../../../test/fixtures/math-c.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = normalize(join(HERE, '../../..')); // repo root, so the mocks can load src/ tokens and fonts
 const PNG = join(HERE, 'png');
 const MIN_TAP = 44, MIN_FONT = 12, MIN_BODY = 14;
-const BANNED = /fair|provabl|complian|certif|regulat|christmas|xmas|santa|snow|festive|real[- ]money win/i;
 
 const DESK = { w: 1920, h: 1080, inset: { t: 0, r: 0, b: 0, l: 0 } };
 const P390 = { w: 390, h: 844, inset: { t: 47, r: 0, b: 34, l: 0 } };
