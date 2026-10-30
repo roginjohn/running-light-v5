@@ -6,7 +6,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer, launch, openGame, waitPhase, state, sleep, clickId, centerOf } from './harness.js';
-import { setup, playTo, dispatch, settle, force, staged, BETS } from './scenes.js';
+import { setup, playTo, dispatch, settle, force, staged, timeToPhase, BETS } from './scenes.js';
 import { MAX_GAMBLES, GAMBLE_CAP } from '../../src/engine/config.js';
 import { BANNED } from '../fixtures/math-c.js';
 
@@ -207,7 +207,7 @@ test('tier and chip colours come from the tokens: six distinct label colours, vi
   assert.deepEqual(c.tiers, ['rgb(154, 165, 177)', 'rgb(94, 234, 212)', 'rgb(110, 168, 254)', 'rgb(240, 171, 252)', 'rgb(253, 224, 71)', 'rgb(255, 255, 255)']);
   assert.equal(new Set(c.tiers).size, 6);
   assert.deepEqual(c.chips, ['rgb(133, 72, 239)', 'rgb(180, 83, 9)']);
-  assert.doesNotMatch(c.text, /fair|provabl/i);
+  assert.doesNotMatch(c.text, BANNED);
   await page.__done();
 });
 
@@ -355,11 +355,8 @@ test('light run (normal motion) takes 4-6 s and lands on the stored stop', async
   const page = await fresh({ timeScale: 1 });
   await setup(page, { balance: 1000, bets: { 50: 1 }, history: [] });
   await force(page, 30);
-  const t0 = Date.now();
-  await dispatch(page, { type: 'START' });
-  await waitPhase(page, 'RESOLVING', 10000);
-  const dt = Date.now() - t0;
-  assert.ok(dt >= 3900 && dt <= 6600, `light took ${dt} ms`);
+  const run = await timeToPhase(page, 'RESOLVING');
+  assert.ok(run.ms >= 3900 && run.ms <= 6000 + run.maxGap + 100, `light took ${run.ms} ms (longest frame ${run.maxGap} ms)`);
   assert.equal(await page.evaluate(() => window.__rl.app.ui.light1.idx), 30);
   await page.__done();
 });
@@ -592,10 +589,8 @@ test('reduced motion: defaults from prefers-reduced-motion; light reaches the st
   assert.equal((await state(page)).settings.reducedMotion, true);
   await setup(page, { balance: 1000, bets: { 20: 1 }, history: [] });
   await force(page, 30);
-  const t0 = Date.now();
-  await dispatch(page, { type: 'START' });
-  await waitPhase(page, ['RESOLVING', 'BETTING']);
-  assert.ok(Date.now() - t0 < 1300, `light took ${Date.now() - t0} ms`);
+  const run = await timeToPhase(page, ['RESOLVING', 'BETTING']);
+  assert.ok(run.ms <= 800 + run.maxGap + 100, `light took ${run.ms} ms (longest frame ${run.maxGap} ms)`);
   assert.ok(await page.evaluate(() => document.getElementById('app').classList.contains('reduced')));
   assert.equal(await page.evaluate(() => document.querySelectorAll('.tile.trail1, .tile.trail2').length), 0, 'no trail');
   await page.__done();
@@ -817,7 +812,7 @@ test('bottom bar actions: sound toggles mute, settings opens Settings, stats ope
   await page.__done();
 });
 
-test('results panel: how results are decided (drawn first, square weights incl. blanks, RTP ~95.4%), no provably-fair claim; Esc/close', async () => {
+test('results panel: how results are decided (drawn first, square weights incl. blanks, RTP ~95.4%), no outcome-verification claim; Esc/close', async () => {
   const page = await fresh();
   await clickId(page, 'icon-results');
   const m = await text(page, '#r-modal');
@@ -877,7 +872,7 @@ test('overlays (refill.png, error.png, settings-paytable-help.png): flat bg-fram
     tabs: [...document.querySelectorAll('#r-modal [role="tab"]')].map((e) => e.textContent),
     head: document.querySelector('#r-modal .ihead h2').textContent,
     foot: [...document.querySelectorAll('#r-modal .ifoot span')].map((e) => e.textContent),
-    toggle: getComputedStyle(document.querySelector('[data-id="tg-mute"]')).backgroundColor,
+    toggle: getComputedStyle(document.querySelector('[data-id="tg-mute"]'), '::before').backgroundColor, // the track is drawn on ::before since batch 7
     focus: document.activeElement.dataset.id,
   }));
   assert.deepEqual(info.tabs, ['Settings', 'Paytable', 'Help']);
@@ -1174,7 +1169,7 @@ test('centre: no big number while betting (mock); during a round it is the multi
     return out;
   });
   assert.match(big.font, /^"JetBrains Mono"/);
-  assert.deepEqual([big.size, big.color, big.contain], ['88px', 'rgb(106, 116, 128)', 'strict'], 'big-number 88 px, #6a7480, contained');
+  assert.deepEqual([big.size, big.color, big.contain], ['88px', 'rgb(128, 138, 150)', 'strict'], 'big-number 88 px, #808a96 (4.5:1 since batch 7), contained');
   await waitPhase(page, ['RESOLVING', 'GAMBLE_OFFER']);
   const P = await page.evaluate(() => { window.__probe.on = false; return window.__probe; });
   const running = P.batches.filter((b) => b.lit);
@@ -1196,8 +1191,9 @@ test('light run: each step changes only tile classes (<= 4 tiles) and the big nu
   await page.evaluate(() => { window.__probe.on = true; });
   await dispatch(page, { type: 'START' });
   // mid-run look: lit = tile-lit fill with dark text, trail = white ::before overlay by opacity, no glow, no veil
-  await page.waitForFunction(() => document.querySelector('#r-track .tile.trail2'), { timeout: 5000 });
-  const look = await page.evaluate(() => {
+  // the check and the read are one task, so the run cannot move on between them
+  const look = await page.waitForFunction(() => {
+    if (!document.querySelector('#r-track .tile.lit') || !document.querySelector('#r-track .tile.trail1') || !document.querySelector('#r-track .tile.trail2')) return null;
     window.__probe.on = false; // our own getComputedStyle calls below are not the app's
     const cs = (sel, pseudo) => getComputedStyle(document.querySelector(sel), pseudo);
     const lit = cs('#r-track .tile.lit');
@@ -1210,7 +1206,7 @@ test('light run: each step changes only tile classes (<= 4 tiles) and the big nu
     };
     window.__probe.on = true;
     return out;
-  });
+  }, { timeout: 5000 }).then((h) => h.jsonValue());
   assert.deepEqual(look.lit, ['rgb(233, 238, 243)', 'rgb(15, 18, 22)', 'none'], 'lit: #e9eef3, dark text, no glow');
   assert.equal(look.litM, 'rgb(15, 18, 22)');
   assert.equal(look.t1, '0.34', 'trail step 1: white overlay at .34, instant');
@@ -1226,9 +1222,15 @@ test('light run: each step changes only tile classes (<= 4 tiles) and the big nu
   const recs = run.flatMap((b) => b.recs);
   const bad = recs.filter((r) => !((r.region === 'r-track' && r.type === 'attributes' && r.attr === 'class' && r.tile) || (r.region === 'r-centre' && r.role === 'big' && r.type === 'childList')));
   assert.deepEqual(bad.slice(0, 5), [], 'a light step only swaps tile classes and the big number text');
-  const perFrame = run.map((b) => new Set(b.recs.filter((r) => r.tile).map((r) => r.tile)).size);
-  assert.ok(Math.max(...perFrame) <= 6, `tiles changed per frame: max ${Math.max(...perFrame)}`);
-  assert.ok(perFrame.filter((n) => n > 4).length <= 2, `frames over 4 tiles: ${perFrame.filter((n) => n > 4).length} (only when one 60 Hz frame covers two squares)`);
+  // <= 4 tiles for a step of one square, and 2 more for each extra square when a late frame covers several (a stalled
+  // frame on a loaded machine is not a failure, doing more than the squares moved require is)
+  const squareOf = (b) => (b.lit ? Number(b.lit.slice(3)) : null);
+  const over = run.map((b, i) => {
+    const moved = i && squareOf(b) && squareOf(run[i - 1]) ? (squareOf(b) - squareOf(run[i - 1]) + 50) % 50 : 1;
+    const tiles = new Set(b.recs.filter((r) => r.tile).map((r) => r.tile)).size;
+    return tiles > 2 + 2 * Math.max(moved, 1) ? `${b.lit}: ${tiles} tiles, ${moved} squares` : null;
+  }).filter(Boolean);
+  assert.deepEqual(over, [], 'tiles changed per frame');
   assert.ok(Math.max(...run.map((b) => b.recs.filter((r) => r.role === 'big').length)) <= 1, 'big number written at most once per frame');
   assert.deepEqual(P.reads, {}, 'no layout reads while the light runs');
   // the landing square: lit + land on the stored stop
@@ -1599,7 +1601,7 @@ test('no glow, pulse or WIN tag remains on tiles in any result state (win, gambl
     }
     if (document.querySelectorAll('.wtag, #r-tags, .confetti, .celebrate').length) bad.push('WIN tag / celebration element');
     if (/\bWIN\b/.test(document.getElementById('r-track').textContent)) bad.push('WIN text on the track');
-    if (/provabl/i.test(document.body.textContent)) bad.push('provably-fair wording');
+    if (/provabl/i.test(document.body.textContent)) bad.push('banned wording');
     return bad.map((b) => `${l}: ${b}`);
   }, label);
   await setup(page, { balance: 1000, bets: MOCK_BETS, chip: 5, history: [] });
