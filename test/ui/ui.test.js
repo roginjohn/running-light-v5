@@ -3,9 +3,9 @@
 // Run: npm run test:ui (builds first)
 // v5: the ring is display-only (batch 4); bets go on the six tier spots in the centre (data-id tier-5 … tier-200, batch 5).
 // Squares used: #1/#6 5x, #5/#15/#24/#27/#40 10x, #13/#17/#33 20x, #3/#29 50x, #21/#46 100x, #8 200x, #2/#12/#30 blank.
-import test, { before, after } from 'node:test';
+import test, { before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, launch, openGame, waitPhase, state, sleep, clickId, centerOf } from './harness.js';
+import { startServer, launch, openGame, closeLeftPages, waitPhase, state, sleep, clickId, centerOf } from './harness.js';
 import { setup, playTo, dispatch, settle, force, staged, timeToPhase, BETS } from './scenes.js';
 import { MAX_GAMBLES, GAMBLE_CAP } from '../../src/engine/config.js';
 import { BANNED } from '../fixtures/math-c.js';
@@ -16,6 +16,7 @@ before(async () => {
   ({ server, url } = await startServer());
   browser = await launch();
 });
+afterEach(closeLeftPages);
 after(async () => {
   await browser.close();
   server.close();
@@ -348,6 +349,15 @@ test('START locks squares and controls; bottom-bar Settings/Stats/Results locked
   await waitPhase(page, 'BETTING');
   await settle(page);
   assert.equal(await attr(page, 'icon-settings', 'aria-disabled'), null, 'unlocked after settle');
+  await page.__done();
+});
+
+test('test pages cannot hide each other: frames keep running on a page while another one is open (the stall behind the flaky runs)', async () => {
+  const page = await fresh();
+  const other = await fresh();
+  const frame = (p) => p.evaluate(() => new Promise((r, fail) => { setTimeout(() => fail(new Error(`no frame, ${document.visibilityState}`)), 3000); requestAnimationFrame(() => r(document.visibilityState)); }));
+  assert.deepEqual([await frame(page), await frame(other)], ['visible', 'visible']);
+  await other.__done();
   await page.__done();
 });
 

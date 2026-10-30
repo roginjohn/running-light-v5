@@ -33,9 +33,10 @@ const BPS = {
   },
   'tablet-portrait': {
     s: 0.85, disc: 56,
-    // fitH: the dock's content height (12 px padding, chips 62 + 12 + Collect / Gamble 120 in the tallest state,
+    // fitH: the dock's content height (12 px padding, chips 66 + 12 + Collect / Gamble 120 in the tallest state,
     // 12 + the one-line disclaimer 16), used to size the frame to its content (betting-768x1024.png)
-    dock: { minH: 390, fitH: 246, chip: 40, gapY: 12, actH: 32, mainH: 56 },
+    // v5 batch 8: 44 px tap targets on the tablet too (dev spec §4): chips 40 -> 44, Undo / Clear 32 -> 44, bar 40 -> 44
+    dock: { minH: 390, fitH: 250, chip: 44, gapY: 12, actH: 44, mainH: 56, bar: 44 },
   },
   phone: {
     s: 0.85, disc: 40,
@@ -79,8 +80,9 @@ export function computeLayout(W, H, fit = null) {
 
   const fw0 = Math.min(FRAME.maxW, W - 2 * FRAME.margin), fh0 = fit ? fit.h : Math.min(FRAME.maxH, H - 2 * FRAME.margin);
   const frame = { x: Math.round((W - fw0) / 2), y: fit ? fit.y : Math.round((H - fh0) / 2), w: fw0, h: fh0 };
-  const bar = { x: frame.x, y: frame.y + frame.h - FRAME.bar, w: frame.w, h: FRAME.bar };
-  const bodyH = frame.h - FRAME.bar;
+  const barH = dockMode ? B.dock.bar : FRAME.bar;
+  const bar = { x: frame.x, y: frame.y + frame.h - barH, w: frame.w, h: barH };
+  const bodyH = frame.h - barH;
   L.header = frame.y; // top edge of the playable area (tooltips and full dialogs stay below it)
 
   let stage, rail = null, dock = null;
@@ -117,7 +119,7 @@ export function computeLayout(W, H, fit = null) {
     dock = { ...B.dock, x: frame.x + 12, y, w: frame.w - 24, h: bar.y - y - 12 };
     // v3 batch 6 (betting-768x1024.png): the frame hugs its content (track, dock, bar) and is centred, instead of
     // stretching the dock to the full height. Not below 600 px wide, where the dock text wraps (narrow fallback).
-    const need = stage.y - frame.y + stage.h + B.dock.fitH + 12 + FRAME.bar;
+    const need = stage.y - frame.y + stage.h + B.dock.fitH + 12 + barH;
     if (!fit && W >= 600 && need < frame.h) return computeLayout(W, H, { y: Math.round((H - need) / 2), h: need, pitch });
   }
   const tile = tileType(tw, th);

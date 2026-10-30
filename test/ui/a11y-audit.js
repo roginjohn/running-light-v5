@@ -4,7 +4,7 @@
 import { setup, playTo, dispatch, settle, force } from './scenes.js';
 import { sleep, clickId, waitPhase } from './harness.js';
 
-export const VIEWPORTS = [[1920, 1080, false], [390, 844, true], [360, 640, true]];
+export const VIEWPORTS = [[1920, 1080, false], [390, 844, true], [360, 640, true], [768, 1024, true]];
 const MOCK_BETS = { 100: 5, 50: 10, 20: 25, 10: 50, 5: 100 };
 const prepare = (page) => setup(page, { balance: 10000, history: [], bets: MOCK_BETS, chip: 25 });
 const gamble = async (page) => {

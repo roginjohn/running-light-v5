@@ -18,6 +18,8 @@
     "screenshots:v3": "node test/ui/screenshots-v3.js",
     "screenshots:batch6": "npm run build && node test/ui/screenshots-v5-batch6.js",
     "screenshots:batch7": "npm run build && node test/ui/screenshots-v5-batch7.js",
+    "screenshots:batch8": "npm run build && node test/ui/screenshots-v5-batch8.js",
+    "preview:rc": "npm run build && node scripts/build-preview.js",
     "perf:budget": "npm run build && node test/ui/perf-budget.js",
     "perf:trace": "node test/ui/perf-trace.js",
     "tokens": "node scripts/gen-tokens.js",

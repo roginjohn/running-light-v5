@@ -43,7 +43,7 @@ test('v5 rail sizes: 320 px rail, 56 px chips, secondary 52 (44 at 1280), primar
   assert.deepEqual([xl.w, xl.chip, xl.actH, xl.mainH, xl.pad, xl.gapY], [320, 56, 52, 60, 20, 12]);
   assert.deepEqual([d.w, d.chip, d.actH, d.mainH, d.pad], [320, 56, 44, 52, 16]);
   assert.deepEqual([tl.w, tl.chip, tl.actH], [DOC.size['rail-width'], DOC.size.chip, DOC.size['button-secondary-height']]);
-  assert.deepEqual([t.chip, t.mainH], [DOC.size['chip-768'], 56]);
+  assert.deepEqual([t.chip, t.actH, t.mainH], [44, 44, 56]); // v5 batch 8: 44 px tap targets (dev spec §4), up from v3's chip-768 of 40
   assert.deepEqual([p.chip, p.actH, p.mainH], [44, 52, 52]);
 });
 
