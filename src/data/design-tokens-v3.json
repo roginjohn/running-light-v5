@@ -436,6 +436,17 @@
     }
   },
   "contrast": [
+    { "name": "tier-5 on bg-card (tier spot)", "fg": "{color.tier-5}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "tier-10 on bg-card (tier spot)", "fg": "{color.tier-10}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "tier-20 on bg-card (tier spot)", "fg": "{color.tier-20}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "tier-50 on bg-card (tier spot)", "fg": "{color.tier-50}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "text-primary odds on bg-card (tier spot)", "fg": "{color.text-primary}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "text-primary odds on bg-panel-navy (tier spot)", "fg": "{color.text-primary}", "bg": "{color.bg-panel-navy}", "kind": "body" },
+    { "name": "text-muted on bg-panel-navy (tier spot)", "fg": "{color.text-muted}", "bg": "{color.bg-panel-navy}", "kind": "body" },
+    { "name": "accent-blue-text bet on bg-card (tier spot)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-card}", "kind": "body" },
+    { "name": "accent-blue-text bet on bg-panel-navy (tier spot)", "fg": "{color.accent-blue-text}", "bg": "{color.bg-panel-navy}", "kind": "body" },
+    { "name": "accent-blue spot border on bg-card", "fg": "{color.accent-blue}", "bg": "{color.bg-card}", "kind": "ui" },
+    { "name": "accent-blue spot border on bg-panel-navy", "fg": "{color.accent-blue}", "bg": "{color.bg-panel-navy}", "kind": "ui" },
     {
       "name": "text-primary on bg-frame",
       "fg": "{color.text-primary}",

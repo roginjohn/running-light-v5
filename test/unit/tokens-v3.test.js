@@ -13,7 +13,7 @@ const CSS = readFileSync(new URL('../../src/styles/tokens.css', import.meta.url)
 
 test('v3 contrast pairs (tokens.md §1 + legacy v2 names) all meet their WCAG ratio', () => {
   const checks = contrastChecks(T);
-  assert.equal(checks.length, 67); // v5 batch 4: the old tier pairs became six tiers on each surface, plus blank and chip pairs
+  assert.equal(checks.length, 78); // v5 batch 4: six tiers on each surface, plus blank and chip pairs; batch 5: tier spot pairs
   for (const c of checks) assert.ok(c.pass, `${c.name}: ${c.ratio} < ${c.need}`);
 });
 

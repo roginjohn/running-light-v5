@@ -7,8 +7,10 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { halveBets, doubleBets } from '../../src/ui/betscale.js';
 import { recordTotal, loadTotals, saveTotals, BET_TOTALS_KEY } from '../../src/ui/bettotals.js';
 import { computeLayout } from '../../src/ui/layout.js';
+import { SPOT_ORDER, lightOdds } from '../../src/ui/track.js';
+import { mapKey } from '../../src/ui/keys.js';
 import { totalOf, validBets } from '../../src/engine/bets.js';
-import { MAX_PER_TIER, MAX_PER_ROUND, TIERS } from '../../src/engine/config.js';
+import { MAX_PER_TIER, MAX_PER_ROUND, TIERS, CHIPS } from '../../src/engine/config.js';
 import { memoryBackend } from '../../src/engine/storage.js';
 import * as C from '../fixtures/math-c.js';
 
@@ -114,11 +116,13 @@ test('last bets persist in their own storage key; unreadable data is ignored', (
 });
 
 // ------------------------------------------------------------------ sizes and look
-test('rail sizes follow the tokens: input 40, chip 34 (40 tablet), secondary 32, primary 52 / 48 at 1280 / 56 tablet', () => {
-  const xl = computeLayout(1920, 1080).rail, d = computeLayout(1280, 720).rail, t = computeLayout(768, 1024).dock;
-  assert.deepEqual([xl.inputH, xl.chip, xl.actH, xl.mainH, xl.pad, xl.gapY], [DOC.size['input-height'], DOC.size.chip, DOC.size['button-secondary-height'], DOC.size['button-primary-height'], 16, 12]);
-  assert.deepEqual([d.mainH, d.pad], [48, 12]);
+test('v5 rail sizes: 320 px rail, 56 px chips, secondary 52 (44 at 1280), primary 60 (52 at 1280); tablets keep the v3 tokens; phones 44 px chips', () => {
+  const xl = computeLayout(1920, 1080).rail, d = computeLayout(1280, 720).rail, tl = computeLayout(1024, 768).rail, t = computeLayout(768, 1024).dock, p = computeLayout(360, 640).dock;
+  assert.deepEqual([xl.w, xl.chip, xl.actH, xl.mainH, xl.pad, xl.gapY], [320, 56, 52, 60, 20, 12]);
+  assert.deepEqual([d.w, d.chip, d.actH, d.mainH, d.pad], [320, 56, 44, 52, 16]);
+  assert.deepEqual([tl.w, tl.chip, tl.actH], [DOC.size['rail-width'], DOC.size.chip, DOC.size['button-secondary-height']]);
   assert.deepEqual([t.chip, t.mainH], [DOC.size['chip-768'], 56]);
+  assert.deepEqual([p.chip, p.actH, p.mainH], [44, 52, 52]);
 });
 
 test('Start is accent-blue with white text, Collect accent-green with dark text; no amber/light-blue gradients', () => {
@@ -133,10 +137,27 @@ test('Start is accent-blue with white text, Collect accent-green with dark text;
 });
 
 test('no glows or shadows on the rail controls', () => {
-  for (const sel of ['.rail, .dock', '.betin', '.btn', '.btn.sec', '.btn.sec.hi', '.chip', '.chip.sel::after', '.rnote', '.lb', '.lb.new', '.credits']) {
+  for (const sel of ['.rail, .dock', '.tbet', '.spot', '.spot.has', '.spot.won', '.btn', '.btn.sec', '.chip', '.chip.sel::after', '.rnote', '.lb', '.lb.new', '.credits']) {
     assert.doesNotMatch(rule(sel), /box-shadow|text-shadow|filter|gradient/, sel);
   }
   assert.doesNotMatch(STYLES, /\.chip\.sel \{[^}]*transform/, 'no chip lift');
+});
+
+test('tier spots: ordered 200x to 5x, with the exact chance per light from tiers/SPEC.md §1', () => {
+  assert.deepEqual(SPOT_ORDER, [200, 100, 50, 20, 10, 5]);
+  assert.deepEqual(SPOT_ORDER.map(lightOdds), ['1 in 218.3', '1 in 109.1', '1 in 54.56', '1 in 21.83', '1 in 10.91', '1 in 5.46']);
+});
+
+test('keys 1-7 pick the seven chips; R does nothing while betting (no Rebet), and stays Red in the gamble', () => {
+  for (const [i, v] of CHIPS.entries()) assert.deepEqual(mapKey({ key: String(i + 1) }, { phase: 'BETTING' }).action, { type: 'SELECT_CHIP', value: v });
+  assert.equal(CHIPS.length, 7);
+  assert.equal(mapKey({ key: '8' }, { phase: 'BETTING' }), null);
+  assert.equal(mapKey({ key: 'r' }, { phase: 'BETTING' }), null);
+  assert.deepEqual(mapKey({ key: 'r' }, { phase: 'GAMBLE' }).action, { type: 'PICK', colour: 'red' });
+});
+
+test('touch screens hide the shortcut list', () => {
+  assert.match(STYLES, /@media \(hover: none\) and \(pointer: coarse\) \{\s*\.keylist, \.gk \{ display: none; \}/);
 });
 
 test('Plus Jakarta Sans is gone: no font file, @font-face, preload, licence, copy step or dependency', () => {

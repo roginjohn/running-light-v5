@@ -23,7 +23,7 @@ test('result states render in stages; the scheduler requests one frame at a time
   // win offer, loss, gamble open, gamble loss, gamble match, payout end
   assert.equal((APP.match(/renderStaged\(\(\) =>/g) || []).length, 6);
   // the focus moves after a result happen inside the staged callbacks, never straight after a full render
-  for (const at of ["focusId('btn-collect', true)", "focusId('btn-back', ui.ringOn)", "focusId('btn-start', false)", "'btn-rebet'"]) {
+  for (const at of ["focusId('btn-collect', true)", "focusId('btn-back', ui.ringOn)", "focusId('btn-start', false)"]) {
     const i = APP.indexOf(at);
     assert.ok(i > 0, at);
     assert.ok(APP.lastIndexOf('renderStaged(', i) > APP.lastIndexOf('render();', i), `${at} runs from a staged render`);

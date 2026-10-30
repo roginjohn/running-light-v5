@@ -6,11 +6,9 @@ import { mapKey } from './keys.js';
 import { createAudio } from './audio.js';
 import { planFirstRunV2, planSecondRunV2, planFade, advance } from './lightplan.js';
 import { MULT, TIERS, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
-import { totalOf, countOf, sameBets } from '../engine/bets.js';
+import { totalOf, countOf } from '../engine/bets.js';
 import { createCryptoRng } from '../engine/rng.js';
-import { halveBets, doubleBets } from './betscale.js';
 import { recordTotal, loadTotals, saveTotals } from './bettotals.js';
-import { TOP_TIER } from './adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
 
 const REGIONS = ['frame', 'stage', 'track', 'centre', 'top', 'credits', 'bar', 'controls', 'toast', 'modal', 'start'];
 const GAME_REGIONS = ['credits', 'track', 'centre', 'top', 'bar', 'controls'];
@@ -133,11 +131,8 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     const mode = V.modeOf(s, ui);
     return {
       needsRefill, gambleWhy, modal, mode, total, count: countOf(s.bets),
-      ghosts: !!(s.ghosts && s.lastBets && total === 0 && s.phase === 'BETTING'),
       canBet: s.phase === 'BETTING' && !needsRefill && !modal && !ui.start,
       canInfo: game.canDispatch({ type: 'OPEN_INFO', tab: 'help' }) && !modal && !ui.start,
-      rebetWhy: game.rebetBlock(),
-      rebetSame: !!(s.lastBets && sameBets(s.bets, s.lastBets)),
       reduced: reduced(),
     };
   }
@@ -425,8 +420,8 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         const target = r.currentWin;
         countTween = tween(Math.min(1500, 400 + target / 4), (x) => { ui.displayWin = Math.round(target * x); paintWin(); }, () => { ui.displayWin = null; countTween = null; paintWin(); }, (x) => 1 - (1 - x) ** 4);
       }
-      if (top >= 50) { // TEMPORARY (Batch 2 adapter): 50x and up use the big-win sound, the 200x the jackpot one
-        audio.play(top >= TOP_TIER ? 'sfx_win_jackpot' : 'sfx_win_big');
+      if (top >= 50) { // 50x and up use the big-win sound, the 200x the jackpot one
+        audio.play(top >= TIERS[TIERS.length - 1] ? 'sfx_win_jackpot' : 'sfx_win_big');
         audio.duck(true);
         wait(2500, () => audio.duck(false));
       } else audio.play('sfx_win_small');
@@ -567,7 +562,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         return;
       case 'ADD_BET': audio.play('sfx_chip_place', { step: Math.min(9, Math.ceil((s.bets[evt.action.tier] || 1) / s.chip) - 1) }); break;
       case 'REMOVE_BET': case 'UNDO': case 'CLEAR': audio.play('sfx_chip_remove'); break;
-      case 'REBET': audio.play('sfx_chip_place'); break;
       case 'SELECT_CHIP': audio.play('sfx_chip_select'); break;
       case 'START': startRound(); break;
       case 'LIGHT1_DONE': wait(300, () => game.dispatch({ type: 'RESOLVE_DONE' })); break;
@@ -594,9 +588,10 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       case 'COLLECT': startPayout(); return;
       case 'PAYOUT_DONE':
         ui.showLastStop = false;
+        keepBets();
         renderStaged(() => {
           const a = document.activeElement;
-          if (game.state.phase === 'BETTING' && (!root.contains(a) || a === document.body || a.getAttribute('aria-disabled') === 'true')) focusId(game.rebetBlock() ? `tier-${TIERS[0]}` : 'btn-rebet', false);
+          if (game.state.phase === 'BETTING' && (!root.contains(a) || a === document.body || a.getAttribute('aria-disabled') === 'true')) focusId('btn-start', false);
         });
         return;
       case 'REFILL': refillAnim(); break;
@@ -626,6 +621,16 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     if (game.needsRefill() && !R.modal.contains(document.activeElement)) focusId('m-refill', ui.ringOn);
   }
   let engineToastSeq = 0;
+
+  // Bets persist between rounds and there is no Rebet (dev spec §3.6). The locked engine empties the board after a paid
+  // round and on load, keeping the bets as lastBets for its ghost outlines; the UI puts them straight back as the live
+  // bets, with no undo step. START still checks every limit in the engine.
+  function keepBets() {
+    const s = game.state;
+    if (!s.ghosts || !s.lastBets) return;
+    s.bets = { ...s.lastBets };
+    s.ghosts = false;
+  }
 
   // ------------------------------------------------------------ type warm-up (v3 batch 7)
   // The first time a result state appears, Blink shapes its text from a cold cache (fonts at new sizes, new words):
@@ -657,6 +662,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     if (s.round) noteBetTotal(s.round); // a round restored after a reload (no-op if it was already recorded)
     else if (!ui.betTotals.length && s.lastBets) noteBetTotal({ roundId: null, totalBet: totalOf(s.lastBets) });
     ui.lightIndex = s.history.length ? s.history[s.history.length - 1].s1 : 1;
+    keepBets();
     relayout();
     warmType();
     if (ui.settingsReset) showToast('Settings were reset to the defaults', 'info');
@@ -729,30 +735,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     return { ok: true };
   }
 
-  // ------------------------------------------------------------ 1/2 and x2 (scale every square's bet)
-  // The locked engine has no scale action, so the UI computes the clamped map (ui/betscale.js, engine limits) and
-  // applies it the way the engine's own bet handlers do: one undo step, ghosts cleared. Only while betting is open;
-  // START re-checks every limit in the engine.
-  function scaleBets(kind) {
-    const c = ctx();
-    const s = game.state;
-    if (c.mode !== 'bet' || !c.canBet || !c.total || !game.canDispatch({ type: 'ADD_BET', tier: 5 })) return null;
-    const r = kind === 'half' ? halveBets(s.bets) : doubleBets(s.bets, s.balance);
-    if (r.limit) {
-      audio.play('sfx_deny');
-      showToast(TOASTS[r.limit], r.limit === 'credits' ? 'error' : 'warn');
-    }
-    if (!r.changed) return { ok: false, reason: 'no change' };
-    s.undo.push(s.bets);
-    s.bets = r.bets;
-    s.ghosts = false;
-    audio.play(kind === 'half' ? 'sfx_chip_remove' : 'sfx_chip_place');
-    render();
-    const n = countOf(r.bets);
-    if (!r.limit) announce(`Total bet ${V.fmt(totalOf(r.bets))} on ${n} tier${n === 1 ? '' : 's'}.`);
-    return { ok: true };
-  }
-
   // ------------------------------------------------------------ input
   function activate(id, { shift = false } = {}) {
     const d = (a) => game.dispatch(a);
@@ -763,9 +745,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     switch (id) {
       case 'btn-undo': return d({ type: 'UNDO' });
       case 'btn-clear': return d({ type: 'CLEAR' });
-      case 'btn-rebet': return d({ type: 'REBET' });
-      case 'btn-half': return scaleBets('half');
-      case 'btn-double': return scaleBets('double');
       case 'btn-start': {
         if (ui.startLocked) return null;
         ui.startLocked = true; // disables synchronously on first activation
@@ -925,8 +904,8 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         break;
       }
       case 'focusTier': {
-        const i = TIERS.indexOf(Number(id.slice(5)));
-        focusId(`tier-${TIERS[(i + intent.delta + TIERS.length) % TIERS.length]}`);
+        const i = V.SPOT_ORDER.indexOf(Number(id.slice(5)));
+        focusId(`tier-${V.SPOT_ORDER[(i + intent.delta + V.SPOT_ORDER.length) % V.SPOT_ORDER.length]}`);
         break;
       }
       case 'tab': {
@@ -964,6 +943,5 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     },
     pendingTasks: () => tasks.size,
     leaveStart: () => leaveStart(),
-    scaleBets,
   };
 }

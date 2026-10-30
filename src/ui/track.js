@@ -1,7 +1,20 @@
 // v3 batch 4: pure helpers for the track's running light and the centre's big multiplier. No DOM, no layout
 // reads: the controller turns these strings into class swaps and one textContent write per light step.
-import { MULT } from '../engine/config.js';
-import { betOn } from './adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
+import { MULT, TIERS, COUNT_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIGHT } from '../engine/config.js';
+
+// v5 tier spots, rarest first (tiers/SPEC.md §2.2), and the exact chance per light on each: 1 in 218.3 … 1 in 5.46.
+export const SPOT_ORDER = [...TIERS].reverse();
+export function lightOdds(t) {
+  const w = COUNT_BY_TIER[t] * WEIGHT_BY_TIER[t];
+  const d = TOTAL_WEIGHT >= 100 * w ? 10 : 100; // integer division, so 21.825 rounds up to 21.83
+  return `1 in ${Math.round((TOTAL_WEIGHT * d) / w) / d}`;
+}
+
+/** The bet that covers square n: its tier's bet in a tier-keyed map (0 on a blank square). */
+export function betOn(bets, n) {
+  const t = MULT[n];
+  return t && bets ? bets[t] || 0 : 0;
+}
 
 /** Winning squares of the current round (only once revealed): a stop wins when its tier has a bet. */
 export function winners(s, ui) {
