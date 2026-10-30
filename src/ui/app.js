@@ -5,7 +5,7 @@ import { computeLayout, layoutVars } from './layout.js';
 import { mapKey } from './keys.js';
 import { createAudio } from './audio.js';
 import { planFirstRunV2, planSecondRunV2, planFade, advance } from './lightplan.js';
-import { MULT, TOASTS } from '../engine/config.js';
+import { MULT, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
 import { totalOf, countOf, sameBets } from '../engine/bets.js';
 import { createCryptoRng } from '../engine/rng.js';
 import { halveBets, doubleBets } from './betscale.js';
@@ -567,11 +567,11 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   function refillAnim() {
     audio.play('sfx_refill');
     ui.displayBalance = 0;
-    tween(reduced() ? 1 : 1000, (x) => { ui.displayBalance = Math.round(1000 * x); paintCredits(); }, () => {
+    tween(reduced() ? 1 : 1000, (x) => { ui.displayBalance = Math.round(REFILL_AMOUNT * x); paintCredits(); }, () => {
       ui.displayBalance = null;
       render();
     }, (x) => x);
-    announce('Refilled: 1,000 play credits.');
+    announce(`Refilled: ${V.fmt(REFILL_AMOUNT)} play credits.`);
   }
 
   // ------------------------------------------------------------ engine events
@@ -683,8 +683,16 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     relayout();
     warmType();
     if (ui.settingsReset) showToast('Settings were reset to the defaults', 'info');
+    showMigrationNotice();
     if (ui.start) focusId('start-play', false);
     else afterStartFocus();
+  }
+  // v5 §2.5: one-time "Game updated" toast after the v1 -> v5 reset (the engine's storage sets the flag once per device)
+  let migrationNotice = !!(game.store && game.store.migration && game.store.migration.notice);
+  function showMigrationNotice() {
+    if (!migrationNotice || ui.start) return; // behind the Start screen it waits for leaveStart
+    migrationNotice = false;
+    showToast(TOASTS.migrated, 'info');
   }
   function afterStartFocus() {
     const s = game.state;
@@ -697,6 +705,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     ui.start = false;
     render();
     afterStartFocus();
+    showMigrationNotice();
     if (then) then();
   }
 
