@@ -7,8 +7,8 @@
     },
     {
       "file": "assets/index.css",
-      "raw": 36471,
-      "gzip": 7798
+      "raw": 36512,
+      "gzip": 7807
     },
     {
       "file": "assets/jetbrains-mono-latin-600-normal.woff2",
@@ -44,31 +44,31 @@
   "sizes": {
     "jsRaw": 91890,
     "jsGzip": 33237,
-    "cssRaw": 36471,
-    "cssGzip": 7798,
+    "cssRaw": 36512,
+    "cssGzip": 7807,
     "htmlRaw": 1865,
     "htmlGzip": 775,
     "fonts": 37676,
     "fontFiles": 3,
-    "totalGzip": 79486
+    "totalGzip": 79495
   },
   "timing": {
     "cpu1x": {
-      "firstPaint": 44,
-      "firstContentfulPaint": 60,
-      "domContentLoaded": 22,
-      "load": 22,
-      "ready": 318
+      "firstPaint": 32,
+      "firstContentfulPaint": 68,
+      "domContentLoaded": 23,
+      "load": 24,
+      "ready": 319
     },
     "cpu4x": {
-      "firstPaint": 120,
-      "firstContentfulPaint": 120,
-      "domContentLoaded": 82,
-      "load": 88,
-      "ready": 496
+      "firstPaint": 124,
+      "firstContentfulPaint": 124,
+      "domContentLoaded": 89,
+      "load": 95,
+      "ready": 512
     },
     "requests": 6,
-    "transferKB": 169.7,
+    "transferKB": 169.74,
     "domNodesBetting": 472,
     "external": []
   },
@@ -82,7 +82,7 @@
     },
     {
       "name": "CSS gzip",
-      "value": 7.8,
+      "value": 7.81,
       "budget": 8,
       "pass": true,
       "soft": false
@@ -117,21 +117,21 @@
     },
     {
       "name": "First contentful paint, 1x CPU (ms)",
-      "value": 60,
+      "value": 68,
       "budget": 300,
       "pass": true,
       "soft": false
     },
     {
       "name": "Ready, 1x CPU (ms)",
-      "value": 318,
+      "value": 319,
       "budget": 1000,
       "pass": true,
       "soft": false
     },
     {
       "name": "Ready, 4x CPU (ms)",
-      "value": 496,
+      "value": 512,
       "budget": 3000,
       "pass": true,
       "soft": false
