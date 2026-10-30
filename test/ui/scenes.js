@@ -1,5 +1,5 @@
 // Scene setup helpers shared by screenshots and UI tests (test mode hooks only).
-import { sleep, waitPhase } from './harness.js';
+import { sleep, waitPhase, pageFacts } from './harness.js';
 
 // v5: bets are keyed by tier
 export const BETS = { 5: 10, 10: 10, 20: 5, 50: 5, 100: 5, 200: 5 }; // total 40 on the 6 tiers
@@ -31,18 +31,27 @@ export async function dispatch(page, action) {
 /** Wait out a staged result render (app.js renderStaged): board and centre first, then the rail, top row and bar,
  *  then the focus move, one frame apart (two frames from an input). */
 export async function staged(page) {
-  await page.evaluate(() => new Promise((r) => { let n = 4; const f = () => (--n ? requestAnimationFrame(f) : r()); requestAnimationFrame(f); }));
+  await page.evaluate(() => new Promise((r, fail) => {
+    setTimeout(() => fail(new Error(`no 4 frames in 10 s (visibility ${document.visibilityState})`)), 10000);
+    let n = 4;
+    const f = () => (--n ? requestAnimationFrame(f) : r());
+    requestAnimationFrame(f);
+  }));
 }
 
 /** Wait until no animation tasks are pending (or timeout). */
 export async function settle(page, timeout = 15000) {
-  await page.waitForFunction(() => window.__rl.app.pendingTasks() === 0, { timeout });
+  try {
+    await page.waitForFunction(() => window.__rl.app.pendingTasks() === 0, { timeout });
+  } catch (e) {
+    throw new Error(`animations still pending after ${timeout} ms (${await pageFacts(page)}): ${e.message}`);
+  }
   await sleep(100);
 }
 
 /** START, timed inside the page from the dispatch to the first frame in the wanted phase, so the time puppeteer takes to
  *  poll is not counted. maxGap is the longest frame seen: a loaded machine can stall a frame, and the run can only
- *  end on a frame, so a run may overshoot by one such gap. */
+ *  end on a frame, so a run may overshoot by one such gap. A timer, which still runs when frames stop, ends a stalled wait. */
 export function timeToPhase(page, phases) {
   return page.evaluate((want) => new Promise((done, fail) => {
     const g = window.__rl.game;
@@ -50,6 +59,7 @@ export function timeToPhase(page, phases) {
     let last = t0, maxGap = 0;
     const r = g.dispatch({ type: 'START' });
     if (!r.ok) { fail(new Error(`START rejected: ${r.reason}`)); return; }
+    setTimeout(() => fail(new Error(`no phase ${want} in 20 s: phase ${g.state.phase}, visibility ${document.visibilityState}, longest frame ${Math.round(maxGap)} ms`)), 20000);
     const tick = (t) => {
       maxGap = Math.max(maxGap, t - last);
       last = t;
