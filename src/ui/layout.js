@@ -170,7 +170,7 @@ export function layoutVars(L) {
   const t = L.tile;
   const v = {
     '--s': L.s, '--tw': `${t.w}px`, '--th': `${t.h}px`, '--num-d': t.showNum ? 'block' : 'none', '--mult-f': `${t.mult}px`,
-    '--big-f': `${L.bigF}px`, '--disc': `${L.disc}px`, '--mk-d': t.w >= 36 ? 'block' : 'none',
+    '--big-f': `${L.bigF}px`, '--disc': `${L.disc}px`,
     '--nw-d': t.noWinText ? 'block' : 'none', '--no-s': `${t.noGlyph}px`, '--m-dy': `${t.dy}px`,
   };
   const c = L.rail || L.dock;

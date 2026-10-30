@@ -57,12 +57,3 @@ export function bigValue(s, ui) {
   }
   return bigMult(0);
 }
-
-/** Result look of the big number (batch 5): `win` = light #e6eaee once a win is revealed, and `extra` = the second
- *  multiplier when both Double Run squares won ("960.00x + 24.00x"). Static per state, never written per step. */
-export function bigResult(s, ui) {
-  const r = s.round;
-  if (!r || !['GAMBLE_OFFER', 'GAMBLE', 'PAYOUT'].includes(s.phase) || ui.gambleLoss) return { win: false, extra: null };
-  const { w1, w2 } = winners(s, ui);
-  return { win: !!(w1 || w2), extra: w1 && w2 ? bigMult(MULT[w2]) : null };
-}

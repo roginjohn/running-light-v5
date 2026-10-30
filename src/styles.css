@@ -144,7 +144,7 @@ svg { display: block; }
 .q100 { background: var(--c-tile-jackpot); border-color: var(--c-border-panel-navy); } .q100 .m { color: var(--c-tier-100); }
 .q200 { background: var(--c-tile-jackpot); border-color: var(--c-tier-200); } .q200 .m { color: var(--c-tier-200); }
 /* blank square (tiers/SPEC.md §2.4): darker, hatched, dashed edge and the no-win glyph, plus "No win" where it fits */
-.qblank, .bkey .sw { background: var(--c-tile-blank) repeating-linear-gradient(135deg, transparent 0 5px, var(--c-tile-blank-hatch) 5px 7px); border: 1px dashed var(--c-tile-blank-edge); }
+.qblank, .sw { background: var(--c-tile-blank) repeating-linear-gradient(135deg, transparent 0 5px, var(--c-tile-blank-hatch) 5px 7px); border: 1px dashed var(--c-tile-blank-edge); }
 .tile .m.nw { flex-direction: column; align-items: center; gap: 2px; font-size: var(--fs-label-sm); letter-spacing: 0; font-weight: 600; }
 .noglyph { position: relative; display: block; flex: none; width: var(--no-s); height: var(--no-s); border: 1.5px solid var(--c-tile-blank-edge); border-radius: 50%; }
 .noglyph::after { content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1.5px; margin-left: -.75px; background: var(--c-tile-blank-edge); transform: rotate(45deg); }
@@ -159,11 +159,11 @@ svg { display: block; }
    Double Run stops say "1st" / "2nd" in place of the number. No glow, ring, pulse or WIN tag. */
 .tile.win { background: var(--c-accent-green); border-color: var(--c-accent-green); color: var(--c-text-on-green); z-index: var(--z-light-layer); }
 .tile.win .m { color: var(--c-text-on-green); }
-.tile.mk .num { display: none; }
-.tile .mkt { position: absolute; left: 6px; top: 5px; font-size: var(--fs-label-xs); line-height: var(--lh-label-xs); font-weight: 700; }
-#app:not([data-bp="desktop-xl"]) .tile .mkt { left: 3px; font-size: 10px; letter-spacing: -.03em; display: var(--mk-d); }
-/* tablet tiles (38-39 px): the marker moves up, clear of the multiplier; hidden on phone tiles (--mk-d) */
-#app[data-bp^="tablet"] .tile .mkt { top: 2px; }
+/* the other squares of a winning tier: any of them would have paid. Double Run: the light's number on its square */
+.tile.tw { outline: 3px solid var(--c-accent-green); outline-offset: -3px; }
+.lbadge { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--c-text-strong); color: var(--c-text-on-light); font-size: 14px; font-weight: 700; line-height: 24px; text-align: center; }
+#app[data-bp="phone"] .tile.tw { outline-width: 2px; outline-offset: -2px; }
+#app[data-bp="phone"] .lbadge { top: -6px; right: -6px; width: 18px; height: 18px; font-size: 12px; line-height: 18px; }
 
 /* centre (v3 batch 4): flat text on the frame fill. The big number box has a fixed size and strict containment,
    so its per-step text change is laid out inside it only. */
@@ -172,13 +172,9 @@ svg { display: block; }
 .cp { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--c-bg-card); color: var(--c-text-muted); font-size: var(--fs-label-sm); font-weight: 600; white-space: nowrap; }
 .cp::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .cp:is(.on, .amber, .cyan) { background: var(--c-accent-blue); color: var(--c-text-strong); }
-.cp.mint { color: var(--c-accent-green-text); } .cp.coral { color: var(--c-accent-red-text); }
+.cp.mint { color: var(--c-accent-green-text); border: 1px solid var(--c-accent-green); } .cp.coral { color: var(--c-accent-red-text); border: 1px solid var(--c-accent-red); }
 .big { contain: strict; width: 8.2ch; height: calc(var(--big-f) * 1.05); font: var(--fw-big-number) var(--big-f)/1.05 var(--f-mono); color: var(--c-big-number); white-space: nowrap; }
 .big small { font-size: .45em; margin-left: .05em; }
-.big.win { color: var(--c-big-number-win); }
-.bigrow { display: flex; align-items: flex-end; gap: var(--sp-2); }
-.bigrow:has(.big2) .big { text-align: right; }
-.big2 { font: var(--fw-big-number) calc(var(--big-f) * .45)/1.6 var(--f-mono); color: var(--c-text-muted); white-space: nowrap; }
 .ctxt { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); max-width: 90%; }
 .ctitle { font-size: var(--fs-title); font-weight: var(--fw-title); line-height: var(--lh-title); color: var(--c-text-primary); }
 .csub { font-size: var(--fs-label-md); line-height: var(--lh-label-md); font-weight: 600; color: var(--c-text-muted); }
@@ -202,6 +198,8 @@ svg { display: block; }
 /* the fade covers the whole spot, so its text-muted labels (4.7:1 unfaded on navy) move to text-primary to keep AA */
 .spot.lost { opacity: var(--o-spot-lost); }
 .spot.lost :is(.sq, .sb) { color: var(--c-text-primary); }
+/* accent-blue falls under 3:1 once faded; this keeps the border at 3:1 or more against the spot fill and the frame */
+.spot.lost { border-color: var(--c-accent-blue-text); }
 .spots.compact { flex: none; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); }
 .spots.compact .spot { padding: var(--sp-1) var(--sp-2); text-align: center; }
 .spots.compact :is(.so, .sq) { display: none; }
@@ -219,19 +217,10 @@ svg { display: block; }
 #app[data-bp^="tablet"] .spots:not(.compact) .spot { padding: var(--sp-2) var(--sp-3); gap: 0; }
 #app[data-bp^="tablet"] .spots:not(.compact) .sm { font-size: 24px; line-height: 28px; }
 .bkey { display: flex; align-items: center; gap: 6px; font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); white-space: nowrap; }
-.bkey .sw { flex: none; width: 16px; height: 16px; border-radius: 3px; }
-/* result cards (component sheet): "#13 [480x] Bet × pays 5 × 480 = 2,400" (green border + value when won) */
-.cards { display: flex; gap: var(--sp-3); }
-.card { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-card); background: var(--c-bg-card); border: 1px solid var(--c-divider); text-align: left; font-size: var(--fs-label-sm); color: var(--c-text-muted); white-space: nowrap; }
-.card b { font-size: var(--fs-label-lg); font-weight: 700; color: var(--c-text-strong); }
-.card .cm { height: 24px; padding: 0 10px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--c-bg-card-pill); color: var(--c-text-primary); font-weight: 700; }
-.card .cv { display: flex; flex-direction: column; }
-.card i { font-style: normal; }
-.card.won { border-color: color-mix(in srgb, var(--c-accent-green) 40%, var(--c-divider)); } .card.won .cv b { color: var(--c-accent-green-text); }
-/* navy gamble band (offer) and gamble panel (gamble-flip.png): flat discs with inset edge rings, no shadows */
-.gband, .gpanel { border-radius: var(--r-card); background: var(--c-bg-panel-navy); border: 1px solid var(--c-border-panel-navy); color: #a9bbd6; font-size: var(--fs-label-sm); }
-.gband { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-3) var(--sp-4); white-space: nowrap; }
-:is(.gband, .ghead) > b { color: var(--c-text-strong); font-size: var(--fs-label-lg); }
+.sw { flex: none; width: 16px; height: 16px; border-radius: 3px; }
+/* gamble panel (gamble-flip.png): flat discs with inset edge rings, no shadows */
+.gpanel { border-radius: var(--r-card); background: var(--c-bg-panel-navy); border: 1px solid var(--c-border-panel-navy); color: #a9bbd6; font-size: var(--fs-label-sm); }
+.ghead > b { color: var(--c-text-strong); font-size: var(--fs-label-lg); }
 .pips { display: inline-flex; gap: 4px; margin-right: var(--sp-1); }
 .pips i { width: 8px; height: 8px; border-radius: 50%; background: var(--c-text-strong); }
 .pips i.used { background: var(--c-border-panel-navy); }
@@ -311,11 +300,8 @@ svg { display: block; }
 .ihead > :is(.mark, .ic) { width: 16px; height: 16px; }
 .ibtn.x { width: 32px; height: 32px; }
 .ifoot { display: flex; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--c-divider); font-size: var(--fs-label-sm); }
-.icols { display: grid; grid-template-columns: 300px 1fr 330px; min-height: 0; overflow: auto; }
-.icols .isec + .isec { border-left: 1px solid var(--c-divider); }
 .ione { min-height: 0; overflow: auto; }
 .isec { padding: var(--sp-5); }
-.ih { margin-bottom: var(--sp-2); font-size: var(--fs-label-lg); color: var(--c-text-strong); }
 .itabs { display: flex; gap: var(--sp-1); margin: var(--sp-3) var(--sp-5) 0; padding: var(--sp-1); border-radius: var(--r-pill); background: var(--c-bg-segment); }
 .itabs button { flex: 1; height: 32px; border-radius: var(--r-pill); text-align: center; font-weight: 700; font-size: var(--fs-label-lg); color: var(--c-text-muted); }
 .itabs .on { background: var(--c-accent-blue); color: var(--c-text-strong); }
@@ -336,12 +322,32 @@ svg { display: block; }
 .ikeys { border-collapse: collapse; font-size: var(--fs-label-sm); }
 .ikeys td { padding: 3px var(--sp-2) 3px 0; }
 .ikeys td:first-child { white-space: nowrap; }
-.ptab { width: 100%; border-collapse: collapse; color: var(--c-text-primary); }
-.ptab th { padding: 0 var(--sp-2) var(--sp-2); text-align: left; vertical-align: bottom; font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); }
-.ptab td { padding: var(--sp-2); border-top: 1px solid var(--c-divider); }
-.ptab td:last-child { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); }
-.ppill { display: inline-grid; place-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--c-bg-card-pill); border: 1px solid var(--c-divider); font-weight: 700; }
-.pnotes { display: flex; flex-direction: column; gap: 6px; margin-top: var(--sp-3); font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
+/* paytable (paytable mock): a table in the dialog, one card per tier on phones; 14 px body copy */
+.pbody { display: flex; flex-direction: column; gap: var(--sp-3); font-size: 14px; line-height: 20px; color: var(--c-text-primary); }
+.pbody .isub { margin: var(--sp-1) 0 0; font-size: 16px; line-height: 22px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.kpis > div { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 10px var(--sp-3); border-radius: var(--r-card); background: var(--c-bg-card); }
+.kpis span { font-size: 13px; color: var(--c-text-muted); }
+.kpis b { font-size: 16px; white-space: nowrap; }
+.ptab { width: 100%; border-collapse: collapse; }
+.ptab :is(th, td) { padding: var(--sp-2) var(--sp-3); text-align: left; border-bottom: 1px solid var(--c-divider); }
+.ptab thead th { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); }
+.ptab .nums { color: var(--c-text-muted); }
+.ptab tfoot :is(th, td) { font-weight: 700; color: var(--c-text-strong); border-bottom: 0; }
+.pm { display: flex; align-items: center; gap: 6px; font: 600 20px/24px var(--f-mono); }
+.pblank .pm, .ptot .pm { font: 700 14px/20px var(--f-sans); }
+.pnavy { background: var(--c-bg-panel-navy); }
+.pblank { background: var(--c-tile-blank) repeating-linear-gradient(135deg, transparent 0 5px, var(--c-tile-blank-hatch) 5px 7px); }
+.pcards { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pcard { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-areas: "m o" "m n"; column-gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-card); background-color: var(--c-bg-card); border: 1px solid var(--c-border-input); }
+.pcard.pnavy { background-color: var(--c-bg-panel-navy); border-color: var(--c-border-panel-navy); }
+.pcard.pblank { border-style: dashed; border-color: var(--c-tile-blank-edge); }
+.pcard.ptot { background: none; }
+.pcard .pm { grid-area: m; align-self: center; }
+.po { grid-area: o; display: flex; justify-content: space-between; gap: var(--sp-2); }
+.po span { font-size: 13px; color: var(--c-text-muted); }
+.pn { grid-area: n; font-size: var(--fs-label-sm); line-height: 16px; color: var(--c-text-muted); }
+.plims { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-1) var(--sp-6); padding-left: var(--sp-4); }
 .isteps { list-style: none; display: flex; flex-direction: column; gap: var(--sp-3); }
 .isteps li { display: flex; gap: var(--sp-3); }
 .isteps .n { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--c-border-input); color: var(--c-text-strong); font-size: 11px; }
@@ -398,17 +404,20 @@ svg { display: block; }
 #app[data-bp="phone"] .spots:not(.compact) .sm { font-size: 22px; line-height: 26px; }
 #app[data-bp="phone"] .spots:not(.compact) .so { font-size: 13px; line-height: 16px; }
 #app[data-bp="phone"] .spots:not(.compact) .sb { font-size: 13px; line-height: 18px; }
-#app[data-bp="phone"] .cards { flex-direction: column; gap: var(--sp-1); width: 100%; }
-#app[data-bp="phone"] .card { gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); justify-content: center; }
-#app[data-bp="phone"] .gband { flex-wrap: wrap; justify-content: center; gap: 2px var(--sp-2); padding: var(--sp-1) var(--sp-2); white-space: normal; }
+#app[data-bp="phone"] .isec { padding: var(--sp-4); }
+#app[data-bp="phone"] .ibtn.x { width: 44px; height: 44px; }
+#app[data-bp="phone"] .itabs button { height: 44px; }
+#app[data-bp="phone"] :is(.kpis, .plims) { grid-template-columns: 1fr; }
 #app[data-bp="phone"] .gpanel { gap: 6px; padding: var(--sp-2); }
+#app[data-bp="phone"] .ghead .pips { display: none; }
+#app[data-bp="phone"] .ghead > b { font-size: 13px; }
+#app[data-bp="phone"] .gl { white-space: nowrap; }
 #app[data-bp="phone"] .gdiscs { gap: var(--sp-2); }
 #app[data-bp="phone"] .gcards { gap: var(--sp-1); align-self: stretch; }
 #app[data-bp="phone"] .gc { flex: 1; min-width: 0; padding: var(--sp-1) 6px; font-size: var(--fs-label-sm); }
 #app[data-bp="phone"] .gmsg, #app[data-bp="phone"] .gnote, #app[data-bp="phone"] .grec { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
 @media (max-height: 700px) {
   #app[data-bp="phone"] :is(.csub, .gnote, .grec), #app[data-bp="phone"] .centre.open .csub { display: none; }
-  #app[data-bp="phone"] .spot .sq { display: none; }
   #app[data-bp="phone"] .spots:not(.compact) .spot { padding: 4px 8px; }
   #app[data-bp="phone"] .spots:not(.compact) .sm { font-size: 20px; line-height: 24px; }
 }

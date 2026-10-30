@@ -405,27 +405,21 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     });
   }
 
-  function afterReveal({ recovered = false } = {}) {
+  function afterReveal() {
     const s = game.state;
     const r = s.round;
     ui.light1 = null;
     ui.light2 = null;
     if (s.phase === 'GAMBLE_OFFER') {
-      // v3 batch 5: the win is shown by flat state (green stop, light big number, green pays pill); no pulse, chase,
-      // WIN tag or confetti. The rail note counts up (batch 3); sounds as before.
+      // the win is shown by flat state (green stop and spot, green pill); no pulse, chase, WIN tag or confetti
       const { w1, w2 } = V.winners(s, ui);
       const top = Math.max(...[w1, w2].filter(Boolean).map((n) => MULT[n]));
-      if (!recovered && !reduced()) {
-        ui.displayWin = 0;
-        const target = r.currentWin;
-        countTween = tween(Math.min(1500, 400 + target / 4), (x) => { ui.displayWin = Math.round(target * x); paintWin(); }, () => { ui.displayWin = null; countTween = null; paintWin(); }, (x) => 1 - (1 - x) ** 4);
-      }
       if (top >= 50) { // 50x and up use the big-win sound, the 200x the jackpot one
         audio.play(top >= TIERS[TIERS.length - 1] ? 'sfx_win_jackpot' : 'sfx_win_big');
         audio.duck(true);
         wait(2500, () => audio.duck(false));
       } else audio.play('sfx_win_small');
-      renderStaged(() => { if (game.state.phase === 'GAMBLE_OFFER') focusId('btn-collect', true); });
+      renderStaged(() => { if (game.state.phase === 'GAMBLE_OFFER') focusId('btn-collect', ui.ringOn); });
       announce(`You win ${V.fmt(r.currentWin)}. Collect or gamble.`);
     } else {
       ui.showLastStop = true;
@@ -504,13 +498,11 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
 
   // ------------------------------------------------------------ payout count-up (<= 1.5 s, click to fast-forward)
   let payoutTween = null;
-  let countTween = null;
   function startPayout() {
     const s = game.state;
     const r = s.round;
     ui.flip = null;
     ui.matchMsg = null;
-    if (countTween) countTween.finish();
     if (r.currentWin > 0) {
       audio.play('sfx_collect');
       const after = s.balance, before = after - r.currentWin;
@@ -696,8 +688,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     const s = game.state;
     const r = s.round;
     ui.lightIndex = r.s2 || r.s1;
-    if (s.phase === 'GAMBLE_OFFER') afterReveal({ recovered: true });
-    else if (s.phase === 'BETTING') afterReveal({ recovered: true });
+    if (s.phase === 'GAMBLE_OFFER' || s.phase === 'BETTING') afterReveal();
     else if (s.phase === 'GAMBLE') {
       render();
       if (s.gamble.revealing) {

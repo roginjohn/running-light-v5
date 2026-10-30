@@ -1,6 +1,6 @@
 // v3 batch 6: overlays and small screens. The dialog / screen CSS is flat (no shadow, glow, gradient or blur; one
 // 160 ms opacity + 4 px dialog entrance), the v2 modal, tab, toggle, notice and bulb-ring rules are gone, the
-// tablet-portrait frame hugs its content (betting-768x1024.png), and the Double Run markers have room on small tiles.
+// tablet-portrait frame hugs its content (betting-768x1024.png), and the Double Run light badges sit on the corner of their tile.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ const CSS = STYLES.replace(/\/\*[\s\S]*?\*\//g, '');
 const rules = [...CSS.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^}]*\})*\s*\}/g, '').matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] }));
 const rule = (sel) => (rules.find((r) => r.sel === sel) || {}).body || '';
 
-const OVERLAY = /\.(scrim|dwrap|dlg|dic|dtitle|drow|dcode|dbtn|dfoot|ihead|ifoot|icols|isec|ione|ih|itabs|isub|srow|tgl|sl|slider|ikeys|kc|ptab|ppill|pnotes|isteps|facts|igamble|inavy|inote|screen|brand|scard|srow2|lbar|lrow)\b|#loading/;
+const OVERLAY = /\.(scrim|dwrap|dlg|dic|dtitle|drow|dcode|dbtn|dfoot|ihead|ifoot|isec|ione|itabs|isub|srow|tgl|sl|slider|ikeys|kc|ptab|kpis|pcards|isteps|facts|igamble|inavy|inote|screen|brand|scard|srow2|lbar|lrow)\b|#loading/;
 
 test('overlay and screen rules are flat: no shadow, glow, gradient, filter or blur', () => {
   const mine = rules.filter((r) => OVERLAY.test(r.sel) && !/:focus/.test(r.sel));
@@ -50,9 +50,9 @@ test('768x1024: the frame hugs track + dock + bar and is centred (betting-768x10
   assert.deepEqual([N.bp, N.frame.h, N.frame.w], ['phone', 844, 390]);
 });
 
-test('Double Run markers: hidden on phone tiles', () => {
-  assert.equal(layoutVars(computeLayout(768, 1024))['--mk-d'], 'block');
-  assert.equal(layoutVars(computeLayout(1280, 720))['--mk-d'], 'block');
-  assert.equal(layoutVars(computeLayout(390, 844))['--mk-d'], 'none');
-  assert.match(rule('#app:not([data-bp="desktop-xl"]) .tile .mkt'), /display: var\(--mk-d\)/);
+test('Double Run light badges: 24 px, 18 px on phones (win mocks); the old 1st / 2nd marker is gone', () => {
+  assert.match(rule('.lbadge'), /width: 24px; height: 24px/);
+  assert.match(rule('#app[data-bp="phone"] .lbadge'), /width: 18px; height: 18px/);
+  assert.equal(layoutVars(computeLayout(390, 844))['--mk-d'], undefined);
+  assert.ok(!CSS.includes('.mkt'));
 });
