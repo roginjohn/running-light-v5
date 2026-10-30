@@ -66,8 +66,9 @@ export const V1_KEYS = Object.freeze({
   balance: 'rl.v1.balance', settings: 'rl.v1.settings', lastBets: 'rl.v1.lastBets', round: 'rl.v1.round', history: 'rl.v1.history',
 });
 
-// Proposed chip fills (SPEC.md §2.10), tokenised in batch 4 after the contrast check.
-export const CHIP_FILLS = Object.freeze({ 100: '#6d28d9', 500: '#b45309' });
+// Chip fills, tokens since batch 4. SPEC.md §2.10 proposed violet #6d28d9, which is under 3:1 on the dark surfaces
+// the chips sit on, so the contrast check moved it to #8548ef. Amber passed as proposed.
+export const CHIP_FILLS = Object.freeze({ 100: '#8548ef', 500: '#b45309' });
 export const CONTRAST_MIN = Object.freeze({ text: 4.5, ui: 3 });
 
 // Same list as docs/design-v5/tiers/render.mjs.

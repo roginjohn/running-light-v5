@@ -4,7 +4,7 @@ import { MULT, TIERS, COUNT_BY_TIER, SQUARES_BY_TIER, WEIGHT_BY_TIER, TOTAL_WEIG
 import { totalOf } from '../engine/bets.js';
 // TEMPORARY (Batch 2 adapter, removed in Batch 5): tier-keyed bets shown on the v3 square board.
 import { MAX_PER_TIER, TOP_TIER, betOn, tierCls, squareLabel } from './adapter.js';
-import { icon, star, chipFace, v3icon, v3mark } from './icons.js';
+import { icon, chipFace, v3icon, v3mark } from './icons.js';
 import { halveBets, doubleBets } from './betscale.js';
 import { winners, lightClass, bigMult, bigValue, bigResult } from './track.js';
 
@@ -18,15 +18,6 @@ const cap = (c) => c[0].toUpperCase() + c.slice(1);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 export const ODDS = Object.fromEntries(TIERS.map((t) => [t, `1 in ${fmt(Math.round(1 / pRound(t)))}`]));
-
-/** Display multiplier label: capitals in display contexts ("24X", "★1920X"). */
-export function tierLabel(m, noX = false) {
-  if (!m) return 'No win';
-  return `${m === TOP_TIER ? star() : ''}${m}${noX ? '' : 'X'}`;
-}
-export function tierBand(m, f, h, w = null) {
-  return `<span class="tb t${tierCls(m)}" style="font-size:${px(f)};height:${px(h)};${w ? `width:${px(w)}` : `padding:0 ${px(h * 0.4)}`}">${tierLabel(m)}</span>`;
-}
 
 // ------------------------------------------------------------------ derived UI mode
 /** bet | locked | offer | ingamble | payout | paused */
@@ -64,6 +55,7 @@ function dockCols(L) {
 
 /** Where the credits value sits: right end of the "Bet amount" row (rail top, or the dock's left column). */
 export function creditsRect(L) {
+  if (L.phone) return { x: 3 * 44 + 8, y: (L.bar.h - HEAD_H) / 2, w: L.W - (3 * 44 + 8) - 48 };
   if (L.rail) return { x: L.rail.x + L.rail.pad + BET_LBL_W, y: L.rail.y + L.rail.pad, w: L.rail.w - 2 * L.rail.pad - BET_LBL_W };
   const c = dockCols(L);
   return { x: c.x1 + BET_LBL_W, y: c.y, w: c.colW - BET_LBL_W };
@@ -74,8 +66,9 @@ export function creditsRect(L) {
 export function credits(s, ui, L) {
   const r = creditsRect(L);
   const bal = s.balance;
+  const key = L.phone ? 'Play credits' : 'Credits';
   const delta = ui.delta ? `<span class="delta">+${fmt(ui.delta)}</span>` : '';
-  return `<div class="credits" role="status" aria-label="Play credits ${fmt(s.balance)}" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(HEAD_H)}"><span class="k">Credits</span><span class="v">${delta}<b data-role="balance">${fmt(bal)}</b></span></div>`;
+  return `<div class="credits" role="status" aria-label="Play credits ${fmt(s.balance)}" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(HEAD_H)}"><span class="k">${key}</span><span class="v">${delta}<b data-role="balance">${fmt(bal)}</b></span></div>`;
 }
 
 // ------------------------------------------------------------------ controls (rail / dock), v3 batch 3
@@ -137,6 +130,7 @@ function railNote(s, ui, c) {
  *  newest first) on the right. Pills that do not fit wrap onto a hidden second line, so no pill is ever cut. */
 export function topRow(s, ui, L) {
   const t = L.top;
+  if (!t) return ''; // phones: no room, the last stop is on the ring
   const hist = s.history.slice(-HISTORY_SHOWN).reverse();
   const res = hist.map((h, i) => {
     const m = MULT[h.s1];
@@ -152,20 +146,20 @@ export function topRow(s, ui, L) {
     <div class="tg lastbets" data-role="last-bets" aria-label="Last bets, newest first: ${bets.length ? bets.map((e) => e.t).join(', ') : 'none yet'}"><span class="k">Last bets:</span><span class="tps">${lbs || '<span class="none">None yet</span>'}</span></div></div>`;
 }
 
-function actionRow(s, c) {
+function actionRow(s, c, phone = false) {
   const off = c.mode !== 'bet' || !c.canBet;
   const undoDis = off || !s.undo.length, clearDis = off || !c.total;
   const rebetDis = off || !!c.rebetWhy || c.rebetSame;
   const lastT = s.lastBets ? totalOf(s.lastBets) : 0;
   const one = (id, label, key, d, hi, title) => `<button class="btn sec hit${hi ? ' hi' : ''}" data-id="${id}" aria-label="${label} (key ${key})"${title ? ` title="${esc(title)}"` : ''}${dis(d)}><span>${label}</span></button>`;
-  return `<div class="acts">${one('btn-undo', 'Undo', 'Z', undoDis)}${one('btn-clear', 'Clear', 'C', clearDis)}${one('btn-rebet', c.ghosts && !c.rebetWhy ? `Rebet ${lastT}` : 'Rebet', 'R', rebetDis, c.ghosts && !rebetDis, c.rebetWhy && s.lastBets ? c.rebetWhy : '')}</div>`;
+  return `<div class="acts">${one('btn-undo', 'Undo', 'Z', undoDis)}${one('btn-clear', 'Clear', 'C', clearDis)}${one('btn-rebet', c.ghosts && !c.rebetWhy && !phone ? `Rebet ${lastT}` : 'Rebet', 'R', rebetDis, c.ghosts && !rebetDis, c.rebetWhy && s.lastBets ? c.rebetWhy : '')}</div>`;
 }
 
 const gambleWhyText = (gw) => (gw === 'cap' ? `Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)}` : gw === 'max' ? 'No gambles left for this win' : '');
 
 /** Primary button(s): Start (blue); after a win the Collect (green, dark text) + Gamble ×2 (blue) stack; in the
  *  gamble, Gamble on <colour> (blue) + Collect, which is locked (outline) while the disc flips. */
-function mainButtons(s, ui, c, dock) {
+function mainButtons(s, ui, c, dock, L) {
   const m = c.mode;
   const r = s.round;
   const st = (inner, d = true) => `<button class="btn pri stack hit" data-id="btn-start"${dis(d)}>${inner}</button>`;
@@ -175,7 +169,7 @@ function mainButtons(s, ui, c, dock) {
     const gwText = gambleWhyText(gw);
     const left = MAX_GAMBLES - r.gambles.length;
     return `<div class="mains">${collect(false)}
-      <button class="btn gam stack hit" data-id="btn-gamble" aria-label="Gamble times 2, fair 50/50 (G)"${gwText ? ` title="${esc(gwText)}"` : ''}${dis(!!gw)}><span>Gamble ×2</span><span class="sub">${gw ? esc(gwText) : `Fair 50/50 · ${left} of ${MAX_GAMBLES} left${dock ? '' : ' · G'}`}</span></button></div>`;
+      <button class="btn gam stack hit" data-id="btn-gamble" aria-label="Gamble times 2, 50/50 (G)"${gwText ? ` title="${esc(gwText)}"` : ''}${dis(!!gw)}><span>Gamble ×2</span><span class="sub">${gw ? esc(gwText) : `50/50 · ${left} of ${MAX_GAMBLES} left${dock ? '' : ' · G'}`}</span></button></div>`;
   }
   if (m === 'locked') return st(`<span>${s.phase === 'DOUBLE_RUN' ? 'Double Run…' : 'Running…'}</span><span class="sub">controls locked</span>`);
   if (m === 'ingamble' && ui.gambleLoss) {
@@ -195,7 +189,7 @@ function mainButtons(s, ui, c, dock) {
   if (m === 'payout') return st('<span>Paying…</span><span class="sub">tap to skip the count-up</span>');
   if (m === 'paused') return st('<span>Paused</span><span class="sub">see the message</span>');
   if (!c.total) return st('<span>Place a bet</span><span class="sub">then press START</span>');
-  return st(`<span>Start</span><span class="sub">${fmt(c.total)} credits on ${c.count} tier${c.count === 1 ? '' : 's'}${dock ? '' : ' · Space'}</span>`, !c.canBet || ui.startLocked);
+  return st(`<span>Start</span><span class="sub">${fmt(c.total)}${L.phone ? '' : ' credits'} on ${c.count} tier${c.count === 1 ? '' : 's'}${dock ? '' : ' · Space'}</span>`, !c.canBet || ui.startLocked);
 }
 
 const disclaimer = () => `<p class="rdisc"><b>Play credits only.</b> No real money value. Free refill to ${fmt(REFILL_AMOUNT)} whenever you run out.</p>`;
@@ -210,59 +204,58 @@ export function controls(s, ui, c, L) {
     const r = L.rail;
     const note = railNote(s, ui, c);
     return `<div class="rail" role="region" aria-label="Bet controls" style="left:${px(r.x)};top:${px(r.y)};width:${px(r.w)};height:${px(r.h)}">
-      ${betField(s, c)}${chipGroup(s, c, true)}${result ? note : ''}${mainButtons(s, ui, c, false)}${acts}${result ? '' : note}
+      ${betField(s, c)}${chipGroup(s, c, true)}${result ? note : ''}${mainButtons(s, ui, c, false, L)}${acts}${result ? '' : note}
       <div style="flex:1"></div>${disclaimer()}</div>`;
+  }
+  // phones: one row of 44 px chips, then the actions (the total is on Start's second line)
+  if (L.phone) {
+    const d = L.dock;
+    return `<div class="dock ph" role="region" aria-label="Bet controls" style="left:${px(d.x)};top:${px(d.y)};width:${px(d.w)};height:${px(d.h)}">
+      ${chipRow(s, c, false)}<div class="phact">${result ? '' : actionRow(s, c, true)}${mainButtons(s, ui, c, true, L)}</div></div>`;
   }
   // tablet portrait: the rail as a 2-column block (left: bet field, note; right: chips, button, actions)
   const d = L.dock;
   return `<div class="dock" role="region" aria-label="Bet controls" style="left:${px(d.x)};top:${px(d.y)};width:${px(d.w)};height:${px(d.h)};padding:${DOCK_PAD}px 0">
       <div class="dcol">${betField(s, c)}${railNote(s, ui, c)}</div>
-      <div class="dcol">${chipGroup(s, c, false)}${mainButtons(s, ui, c, true)}${acts}</div>
+      <div class="dcol">${chipGroup(s, c, false)}${mainButtons(s, ui, c, true, L)}${acts}</div>
       ${disclaimer()}</div>`;
 }
 
 // ------------------------------------------------------------------ tiles
-// v3 batch 4: flat squares (tokens.md §1). The static part is built once per tile; per state only the tile's
-// class list and its .dyn child (bet badge, result veil) change, and during a light run only the class list.
+// v5 batch 4: the ring is display-only: plain <div>s with no focus, hover or bet target, and no bet badges (bets show
+// on the centre's tier buttons). The static part is built once per tile; per state only the tile's class list and
+// its .dyn child (Double Run marker) change, and during a light run only the class list. A blank square is marked
+// three ways, not by colour alone: hatching, a dashed border and the no-win glyph, plus "No win" where it fits.
 export function tileStatic(n) {
-  return `<span class="num">${n}</span><span class="m">${squareLabel(n)}</span><span class="dyn"></span>`;
+  const m = MULT[n];
+  const label = m ? `<span class="m">${m}<span class="x">x</span></span>` : '<span class="m nw"><i class="noglyph"></i><span class="nwt">No win</span></span>';
+  return `<span class="num">${n}</span>${label}<span class="dyn"></span>`;
 }
 
-/** Per-tile dynamic look: { cls, dyn, disabled, label } (diffed by the controller). */
-export function tileLook(n, s, ui, c) {
+/** Per-tile dynamic look: { cls, dyn } (diffed by the controller). */
+export function tileLook(n, s, ui) {
   const r = s.round;
-  const m = MULT[n];
-  const cls = [`q${tierCls(m)}`];
+  const cls = [`q${tierCls(MULT[n])}`];
   const light = lightClass(n, ui);
   if (light) cls.push(light);
   // v3 batch 5 result look (component sheet): a winning stop is flat accent-green with dark text, a losing stop
   // keeps the tile-lit fill, and in a Double Run both stops show "1st" / "2nd" in place of the square number.
   // No glow, ring, pulse, chase, veil or WIN tag; the only motion is the batch-4 landing pop (transform).
   const { w1, w2 } = winners(s, ui);
-  let mark = '', result = '';
+  let dyn = '';
   if (r) {
     const revealed = ['GAMBLE_OFFER', 'GAMBLE', 'PAYOUT'].includes(s.phase) || ui.gambleLoss || ui.showLastStop;
     const first = n === r.s1 && (revealed || s.phase === 'DOUBLE_RUN');
     const second = r.s2 && n === r.s2 && revealed;
     if (first || second) {
-      result = n === w1 || n === w2 ? 'win' : 'lit';
-      if (!light) cls.push(result);
+      if (!light) cls.push(n === w1 || n === w2 ? 'win' : 'lit');
       if (r.doubleRun) {
         cls.push('mk');
-        mark = `<span class="mkt">${first ? '1st' : '2nd'}</span>`;
+        dyn = `<span class="mkt">${first ? '1st' : '2nd'}</span>`;
       }
     }
   }
-  const live = betOn(s.bets, n); // the square shows its tier's bet (Batch 2 adapter)
-  const ghostV = !live && c.ghosts && s.lastBets ? betOn(s.lastBets, n) : 0;
-  // No veil or lock icon while the light runs (running.png): squares keep their look, so a light step changes
-  // classes only. They are still aria-disabled.
-  let dyn = mark;
-  if (live) dyn += `<span class="bet">${live}</span>`;
-  else if (ghostV) dyn += `<span class="bet ghost">${ghostV}</span>`;
-  const said = result === 'win' ? ', winning stop' : result ? ', the light stopped here' : '';
-  const what = m ? `pays ${m}x, your ${m}x bet ${live}` : 'blank square, no win';
-  return { cls: cls.join(' '), dyn, disabled: !c.canBet || !m, label: `Square ${n}, ${what}${said}` };
+  return { cls: cls.join(' '), dyn };
 }
 
 // ------------------------------------------------------------------ centre panel
@@ -300,7 +293,7 @@ export function centreModel(s, ui, c) {
     if (r.doubleRun && w1 && w2) sub = `Two squares won this round. A second light ran and could not stop on #${r.s1}.`;
     else if (r.doubleRun && w1) sub = `The second light stopped on #${r.s2} (no win there).`;
     else if (r.doubleRun) sub = `The first light stopped on #${r.s1} (no win there).`;
-    else sub = c.gambleWhy ? `Collect it. Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.` : 'Collect it, or gamble it on a fair 50/50.';
+    else sub = c.gambleWhy ? `Collect it. Gamble is off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.` : 'Collect it, or gamble it on a 50/50.';
     return { ...M, status, headline: `You win ${fmt(r.baseWin)}`, sub, cards, band: true };
   }
   if (m === 'payout') {
@@ -312,14 +305,14 @@ export function centreModel(s, ui, c) {
     return { ...M, status: ['coral', 'No win'], headline: 'No win this time', sub, cards };
   }
   if (c.ghosts) return { ...M, status: ['idle', 'Betting open'], headline: 'Place your bets', sub: `Last round’s bets are shown as outlines. Press Rebet to place all ${totalOf(s.lastBets)} again.` };
-  return { ...M, status: ['idle', 'Betting open'], headline: 'Place your bets', sub: 'Pick a chip, tap a square to bet on its tier, then press <b>Start</b>.' };
+  return { ...M, status: ['idle', 'Betting open'], headline: 'Place your bets', sub: 'Pick a chip, tap a tier to bet on it, then press <b>Start</b>.' };
 }
 
-/** Navy "Double or nothing" band under a win (win-gamble-offer.png): the fair 50/50, both outcomes, gambles left. */
+/** Navy "Double or nothing" band under a win (win-gamble-offer.png): the 50/50, both outcomes, gambles left. */
 function gambleBand(s, c) {
   const r = s.round;
   const used = r.gambles.length;
-  const what = c.gambleWhy ? gambleWhyText(c.gambleWhy) : `Fair 50/50 · Win → ${fmt(r.currentWin * 2)} · Lose → 0`;
+  const what = c.gambleWhy ? gambleWhyText(c.gambleWhy) : `50/50 · Win → ${fmt(r.currentWin * 2)} · Lose → 0`;
   return `<div class="gband"><b>Double or nothing</b><span>${esc(what)}</span>${pips(used)}<span>${leftText(used)}</span></div>`;
 }
 
@@ -380,6 +373,19 @@ function gamblePanel(s, ui, c, L) {
     <div class="gnote">${loss ? `Your credits stay at <b>${fmt(s.balance)}</b>. Nothing else was taken.` : `Gamble is turned off when the doubled win would exceed ${fmt(GAMBLE_CAP)} credits.`}</div>`;
 }
 
+/** TEMPORARY (replaced by the six tier spots in Batch 5): with the ring display-only, the pays row is where bets go.
+ *  Click / Enter adds the chip, right-click / Shift+click / Backspace removes it. */
+function tierButtons(s, c, on) {
+  const off = c.mode !== 'bet' || !c.canBet;
+  return `<div class="pays">${TIERS.map((m) => {
+    const bet = s.bets[m] || 0;
+    const ghost = !bet && c.ghosts && s.lastBets ? s.lastBets[m] || 0 : 0;
+    const cls = `${on.has(m) ? ' on' : ''}${bet ? ' has' : ''}${ghost ? ' ghost' : ''}`;
+    const foot = bet ? `Bet ${fmt(bet)}` : ghost ? `Last ${fmt(ghost)}` : `${COUNT_BY_TIER[m]} square${COUNT_BY_TIER[m] > 1 ? 's' : ''}`;
+    return `<button class="pay hit k${m}${cls}" data-id="tier-${m}" aria-label="${m}x tier, ${COUNT_BY_TIER[m]} square${COUNT_BY_TIER[m] > 1 ? 's' : ''}, bet ${bet}"${dis(off)}><b>${m}x</b><i>${foot}</i></button>`;
+  }).join('')}</div>`;
+}
+
 /** Centre (v3 batches 4–5): status pills, the big multiplier, a flat title and sub line, the pays row (the won
  *  tiers in green), result cards, and the navy gamble band; or the gamble panel. The number's text is written by
  *  the controller (app.js paintBig), so a light step never rebuilds this region. */
@@ -392,15 +398,18 @@ export function centre(s, ui, c, L) {
   const dr = `<span class="cp${M.dr ? ' on' : ''}">${M.dr ? 'Double Run on' : `Double Run · 1 in ${DOUBLE_RUN_ONE_IN}`}</span>`;
   const B = bigResult(s, ui);
   const on = M.on || new Set();
-  const pays = I.w < 420 ? '' : `<div class="pays">${TIERS.map((m) => `<span class="pay${on.has(m) ? ' on' : ''}"><b>${m}x</b><i>${COUNT_BY_TIER[m]} square${COUNT_BY_TIER[m] > 1 ? 's' : ''}</i></span>`).join('')}</div>`;
+  const busy = (M.cards && M.cards.length) || M.band;
+  // phones have no room for the buttons and the legend beside the result cards
+  const pays = L.phone && busy ? '' : tierButtons(s, c, on);
+  const legend = busy && (L.phone || I.h < 560) ? '' : `<div class="bkey"><i class="sw" aria-hidden="true"></i>Blank square · no win · ${BLANK_COUNT} of 50</div>`;
   return box('', `<div class="cps">${st}${dr}</div>
     <div class="bigrow"><div class="big${B.win ? ' win' : ''}" aria-hidden="true"><span data-role="big"></span><small>x</small></div>${B.extra ? `<div class="big2" aria-hidden="true">+ ${B.extra}<small>x</small></div>` : ''}</div>
     <div class="ctxt" aria-live="polite"><div class="ctitle" data-role="headline">${M.headline}</div>${M.sub ? `<div class="csub">${M.sub}${M.note ? ` ${M.note}` : ''}</div>` : ''}</div>
-    ${pays}${M.cards && M.cards.length ? `<div class="cards">${M.cards.join('')}</div>` : ''}${M.band ? gambleBand(s, c) : ''}`);
+    ${pays}${M.cards && M.cards.length ? `<div class="cards">${M.cards.join('')}</div>` : ''}${M.band ? gambleBand(s, c) : ''}${legend}`);
 }
 
 // ------------------------------------------------------------------ bottom bar (v3 batch 2)
-/** 40 px bar across the frame: sound, settings, stats (paytable + help) left; title centre; fairness right. */
+/** 40 px bar across the frame: sound, settings, stats (paytable + help) left; title centre; results panel right. */
 export function bottomBar(s, ui, c, L) {
   const b = L.bar;
   const locked = !['BETTING', 'INIT'].includes(s.phase);
@@ -413,31 +422,7 @@ export function bottomBar(s, ui, c, L) {
   return `<div class="bbar" role="toolbar" aria-label="Sound, settings and game info" style="left:${px(b.x)};top:${px(b.y)};width:${px(b.w)};height:${px(b.h)}">
     <div class="bb-l">${sound}${ib('icon-settings', icon('gear'), 'Settings', off)}${ib('icon-stats', v3icon('stats'), 'Paytable and help', off)}</div>
     <div class="bb-c">${v3mark()}<span><b>Running Light</b>${tail}</span></div>
-    <div class="bb-r">${ib('icon-fair', v3icon('scales'), 'How results are decided', off)}</div></div>`;
-}
-
-// ------------------------------------------------------------------ tooltip / long-press sheet
-export function tooltip(n, s, L, sheet) {
-  const { x, y, side } = L.pos[n];
-  const m = MULT[n];
-  const w = 250 * L.s + 20 + (sheet ? 30 : 0);
-  const f = fs(L, 14, 12);
-  let l = side === 'left' ? x + L.tile.w + 14 : x - w - 14;
-  let arrow = side === 'left' ? 'arrow-left' : 'arrow-right';
-  if (l < 4) { l = x + L.tile.w + 14; arrow = 'arrow-left'; }
-  if (l + w > L.W - 4) { l = L.W - w - 4; arrow = 'arrow-up'; }
-  const t = Math.max(L.header + 4, Math.min(y - 10, L.H - 190));
-  const bet = betOn(s.bets, n);
-  const foot = !m ? ''
-    : sheet
-      ? `<div class="tbtns"><button class="btn sec hit" data-id="tip-remove" aria-label="Remove ${s.chip} from the ${m}x tier"${dis(!bet)}>−${s.chip}</button><button class="btn cta hit" data-id="tip-add" aria-label="Add ${s.chip} to the ${m}x tier"${dis(bet >= MAX_PER_TIER)}>+${s.chip}</button></div>`
-      : `<div class="lo" style="margin-top:6px;font-weight:600;font-size:${px(f * 0.86)}">Click +${s.chip} · Right-click −${s.chip}</div>`;
-  const body = m
-    ? `Pays <b style="color:var(--c-text-hi)">${m}× your ${m}x bet</b> (incl. stake)<br>This square, per round ≈ ${ODDS[m]}<br>Your ${m}x bet: ${fmt(bet)} / ${fmt(MAX_PER_TIER)}`
-    : 'Blank square: no win.<br>A light that stops here pays nothing.';
-  return `<div class="tip ${arrow}${sheet ? ' sheet' : ''}" role="${sheet ? 'dialog' : 'tooltip'}" aria-label="Square ${n}" style="left:${px(l)};top:${px(t)};width:${px(w)};padding:${px(12 * L.s)} ${px(14 * L.s)};font-size:${px(f)}">
-    <div style="display:flex;align-items:center;gap:8px;font-weight:800;font-size:${px(f * 1.1)}">Square ${n} ${tierBand(m, f * 0.85, f * 1.4)}</div>
-    <div class="muted" style="margin-top:6px;font-weight:600;line-height:1.45">${body}</div>${foot}</div>`;
+    <div class="bb-r">${ib('icon-results', v3icon('scales'), 'How results are decided', off)}</div></div>`;
 }
 
 // ------------------------------------------------------------------ toast
@@ -505,17 +490,17 @@ export function recoveryModal(s, L) {
     ${dbtn('m-continue', 'Continue', `Show my result${enterKey(L)}`, 'Continue: show my result (Enter)')}${dfoot}`);
 }
 
-/** Fairness panel (bottom-bar scales icon): how the engine decides results. Plain facts only; there is no seed
+/** Results panel (bottom-bar scales icon): how the engine decides results. Plain facts only; there is no seed
  *  verification, so nothing here may suggest one. Numbers come from engine/config.js. */
-export function fairnessModal(L) {
+export function resultsModal(L) {
   const weights = TIERS.map((t) => WEIGHT_BY_TIER[t]).join(' / ');
   const item = (a, b) => `<li><b>${a}</b> ${b}</li>`;
   return dialog(L, { w: 560, label: 'How results are decided', cls: ' info' }, `<div class="ihead">${v3icon('scales')}<h2>How results are decided</h2><button class="ibtn hit x" data-id="f-close" aria-label="Close (Esc)">${icon('x')}</button></div>
-    <ul class="facts" data-role="fairness">
+    <ul class="facts" data-role="results">
     ${item('Drawn first.', 'When you press Start, the result is drawn and saved on this device before the light starts. The light only shows that saved result, and reloading shows the same one.')}
     ${item('Weighted squares.', `Squares are not equally likely: weights ${weights} per square for ${TIERS.map((t) => `${t}x`).join(' / ')}, and ${BLANK_WEIGHT} for each of the ${BLANK_COUNT} blank squares, of ${fmt(TOTAL_WEIGHT)}. A blank square pays nothing.`)}
     ${item(`Double Run, 1 in ${DOUBLE_RUN_ONE_IN}.`, 'Drawn in the same step. The second light never stops on the first square.')}
-    ${item('Gamble, fair 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, and off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`)}
+    ${item('Gamble, 50/50.', `Red or white is drawn when you press Gamble and saved before the disc flips. A match doubles the win, no match loses it. Up to ${MAX_GAMBLES} per win, and off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.`)}
     ${item('RTP about 95.4%.', 'The theoretical long-run average return. Any session can be higher or lower.')}
     ${item('Randomness.', 'Your browser’s built-in crypto random number generator, on this device. Nothing is sent anywhere.')}</ul>
     <div class="ifoot"><span>${L.dockMode ? 'Play credits only' : 'Esc closes this window'}</span><span>No real money value</span></div>`);
@@ -543,7 +528,7 @@ function settingsBody(s, ui) {
   const tg = (id, on, label, d = false) => `<button class="tgl hit${on ? ' on' : ''}" data-id="${id}" role="switch" aria-checked="${on}" aria-label="${label}"${dis(d)}><i></i></button>`;
   const sl = (id, key, label) => `<span class="sl"><span class="slider hit" data-id="${id}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${st[key]}"><i style="width:${st[key]}%"></i><b style="left:${st[key]}%"></b></span><span class="v">${st[key]}</span></span>`;
   const row = (a, sub, ctl, off = false) => `<div class="srow${off ? ' off' : ''}"><span><b>${a}</b><br>${sub}</span>${ctl}</div>`;
-  const keys = [['Space', 'Start'], ['1–5', 'Chip'], ['Enter · Backspace', 'Add · remove on a square'], ['Z · C · R', 'Undo · Clear · Rebet'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
+  const keys = [['Space', 'Start'], ['1–5', 'Chip'], ['Enter · Backspace', 'Add · remove on a tier'], ['Z · C · R', 'Undo · Clear · Rebet'], ['G · Enter', 'Gamble · Collect'], ['R / W · ← →', 'Pick red / white'], ['M', 'Mute'], ['Esc', 'Close this window']];
   let h = '';
   if (ui.settingsReset) h += `<p class="inote" data-role="settings-reset">Your saved settings couldn’t be read, so they were reset to the defaults. Your credits and rounds were not affected.</p>`;
   h += row('Sound', 'Effects for the light, wins and gamble · M', tg('tg-mute', !st.mute, 'Sound'));
@@ -562,20 +547,20 @@ function paytableBody() {
   h += '</table><div class="pnotes">';
   h += `<p><b>You bet on a tier.</b> Each light that stops on a square of that tier pays: a bet of 5 on 10x returns 50 (stake included). The ${BLANK_COUNT} blank squares pay nothing.</p>`;
   h += `<p><b>Double Run · 1 in ${DOUBLE_RUN_ONE_IN} rounds:</b> a second light runs and can’t stop on the first square. Both stops pay.</p>`;
-  h += `<p><b>Gamble:</b> fair 50/50 on red or white, up to ${MAX_GAMBLES} times per win. Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</p>`;
+  h += `<p><b>Gamble:</b> 50/50 on red or white, up to ${MAX_GAMBLES} times per win. Off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</p>`;
   h += `<p><b>Limits:</b> ${MIN_BET}–${fmt(MAX_PER_TIER)} per tier, ${fmt(MAX_PER_ROUND)} per round. Chips ${CHIPS.join(', ')}.</p>`;
   h += '<p><b>RTP ≈95.4%:</b> the theoretical long-run average return, not a promise for any session.</p></div>';
   return h;
 }
 
-/** Help: the four steps, how the gamble really works (engine rules: fair 50/50 drawn and saved when Gamble is
+/** Help: the four steps, how the gamble really works (engine rules: 50/50 drawn and saved when Gamble is
  *  pressed, ×2 or lose the win, max 3 per win, off if the doubled win would exceed the 300,000 cap), and the play-credits note. */
 function helpBody() {
-  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Click a square to bet on its tier, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
+  const steps = [['Pick a chip', `${CHIPS.slice(0, -1).join(', ')} or ${CHIPS[CHIPS.length - 1]} credits.`], ['Place bets', `Click a tier in the centre to bet on it, up to ${fmt(MAX_PER_TIER)} per tier and ${fmt(MAX_PER_ROUND)} per round.`], ['Press Start', 'The light runs for 4–6 seconds and stops on one square. Blank squares pay nothing.'], ['Collect or gamble', 'Win when the light stops on a tier you bet on, then Collect it or gamble it.']];
   let h = `<ol class="isteps">${steps.map(([a, b], i) => `<li><span class="n">${i + 1}</span><span><b>${a}</b><br>${b}</span></li>`).join('')}</ol>`;
   h += `<h4 class="isub">How the gamble works</h4><ul class="igamble" data-role="help-gamble">
     <li>After a win, press <b>Gamble ×2</b>, pick <b>red</b> or <b>white</b>, then press Gamble on your colour.</li>
-    <li>Red or white is drawn at that moment, a fair 50/50, and saved before the disc flips.</li>
+    <li>Red or white is drawn at that moment, a 50/50, and saved before the disc flips.</li>
     <li><b>Match:</b> your win doubles. Gamble again or Collect. <b>No match:</b> the win is lost. Nothing else is taken.</li>
     <li>Up to ${MAX_GAMBLES} gambles per win, and Collect is open between flips. Gamble is off if the doubled win would exceed ${fmt(GAMBLE_CAP)}.</li></ul>`;
   h += `<p class="inavy"><b>Play credits only.</b> No real money value. Credits can’t be bought, sold or cashed out. Free refill to ${fmt(REFILL_AMOUNT)} whenever you run out.</p>`;

@@ -80,8 +80,8 @@ test('win / loss stops are flat token fills (component sheet): green with dark t
   assert.match(rules.find((r) => r.sel === '.tile.win .m').body, /color: var\(--c-text-on-green\)/);
   assert.match(rules.find((r) => r.sel === '.tile:is(.lit, .lit2)').body, /background: var\(--c-tile-lit\)/);
   assert.match(rules.find((r) => r.sel === '.tile.mk .num').body, /display: none/);
-  // a lit or won stop keeps its look under the pointer (post-loss hover)
-  assert.ok(rules.some((r) => r.sel === '.tile:not([aria-disabled="true"], .lit, .win):hover'));
+  // the ring is display-only: no hover look on a square
+  assert.ok(!rules.some((r) => /\.tile[^,]*:hover/.test(r.sel)));
 });
 
 test('result centre: light big number, green pays pill, navy band and panel, flat discs; the flip turns by transform only', () => {

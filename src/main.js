@@ -7,7 +7,6 @@ import { createGame } from './engine/game.js';
 import { createCryptoRng, createSeededRng } from './engine/rng.js';
 import { detectBackend, memoryBackend, KEYS, validSettings } from './engine/storage.js';
 import { startApp } from './ui/app.js';
-import { adaptGame } from './ui/adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
 import { loadingScreen } from './ui/view.js';
 
 // UI feature flag: Start screen after loading (v2 open item 1, default ON). Tests may turn it off via __RL_TEST__.
@@ -64,14 +63,13 @@ async function boot() {
   // T.noStorage simulates unavailable localStorage the same way detectBackend() falls back.
   const { backend, persistent } = T && T.noStorage ? { backend: memoryBackend(), persistent: false } : detectBackend();
   const settingsReset = resetCorruptSettings(backend);
-  // TEMPORARY (Batch 2 adapter, removed in Batch 5): the v3 UI's square bets reach the v5 engine as tier bets.
-  const game = adaptGame(createGame({
+  const game = createGame({
     rng: T && Number.isInteger(T.seed) ? createSeededRng(T.seed) : createCryptoRng(),
     backend,
     persistent,
     prefersReducedMotion: reducedPref,
     testMode: !!T,
-  }));
+  });
   const startScreen = T && typeof T.startScreen === 'boolean' ? T.startScreen : START_SCREEN;
   const app = startApp({ game, root, testMode: !!T, timeScale: (T && T.timeScale) || 1, startScreen, settingsReset });
   game.init();

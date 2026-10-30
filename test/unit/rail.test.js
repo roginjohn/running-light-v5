@@ -1,5 +1,5 @@
 // v3 rail controls (batch 3): 1/2 and x2 scaling clamped to the locked engine limits (v5: 1-1,000 per tier,
-// 1,000 per round, the balance; bets keyed by tier through the Batch 2 adapter), "Last bets" round totals, rail
+// 1,000 per round, the balance; bets keyed by tier), "Last bets" round totals, rail
 // sizes from the tokens, flat Start/Collect colours, and Plus Jakarta Sans fully removed.
 import test from 'node:test';
 import assert from 'node:assert/strict';

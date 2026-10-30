@@ -5,17 +5,16 @@ import { computeLayout, layoutVars } from './layout.js';
 import { mapKey } from './keys.js';
 import { createAudio } from './audio.js';
 import { planFirstRunV2, planSecondRunV2, planFade, advance } from './lightplan.js';
-import { MULT, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
+import { MULT, TIERS, TOASTS, REFILL_AMOUNT } from '../engine/config.js';
 import { totalOf, countOf, sameBets } from '../engine/bets.js';
 import { createCryptoRng } from '../engine/rng.js';
 import { halveBets, doubleBets } from './betscale.js';
 import { recordTotal, loadTotals, saveTotals } from './bettotals.js';
 import { TOP_TIER } from './adapter.js'; // TEMPORARY (Batch 2 adapter, removed in Batch 5)
 
-const REGIONS = ['frame', 'stage', 'track', 'centre', 'top', 'credits', 'bar', 'controls', 'toast', 'tip', 'modal', 'start'];
+const REGIONS = ['frame', 'stage', 'track', 'centre', 'top', 'credits', 'bar', 'controls', 'toast', 'modal', 'start'];
 const GAME_REGIONS = ['credits', 'track', 'centre', 'top', 'bar', 'controls'];
 const UI_TOASTS = { [TOASTS.noSave]: "Progress won't be saved on this device" };
-const LONG_PRESS_MS = 400;
 const GAMBLE_LOSS_MS = 3000;
 
 export function startApp({ game, root, testMode = false, timeScale = 1, startScreen = true, settingsReset = false }) {
@@ -30,11 +29,11 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   let L = null;
 
   const ui = {
-    tip: null, sheet: null, light1: null, light2: null,
+    light1: null, light2: null,
     displayBalance: null, displayWin: null, delta: null, toast: null, toastSeq: 0, flip: null, matchMsg: null,
-    gambleLoss: null, ringOn: false, roving: 1, showLastStop: false, startLocked: false,
+    gambleLoss: null, ringOn: false, showLastStop: false, startLocked: false,
     paused: false, lightIndex: 1, start: startScreen, settingsReset, reducedNow: false,
-    fairness: false, infoFrom: null, // fairness panel is UI-only (no engine state); infoFrom = icon that opened Info
+    results: false, infoFrom: null, // results panel is UI-only (no engine state); infoFrom = icon that opened Info
     betTotals: [], // "Last bets": [{ id: roundId, t: total }], newest first (ui/bettotals.js)
   };
   const backend = game.store && game.store.backend;
@@ -129,7 +128,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     else if (s.phase === 'RECOVERY') modal = 'recovery';
     else if (needsRefill) modal = 'refill';
     else if (s.info) modal = 'info';
-    else if (ui.fairness) modal = 'fairness';
+    else if (ui.results) modal = 'results';
     const total = totalOf(s.bets);
     const mode = V.modeOf(s, ui);
     return {
@@ -164,10 +163,10 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     const st = L.stage;
     R.stage.style.cssText = `left:${st.x}px;top:${st.y}px;width:${st.w}px;height:${st.h}px`;
     setRegion('frame', V.pageFrame(L));
-    // persistent tile buttons (#1 top-left, clockwise)
+    // persistent display-only tiles (#1 top-left, clockwise)
     if (!R.track.children.length) {
       let h = '';
-      for (let n = 1; n <= 50; n++) h += `<button class="tile hit" data-id="sq-${n}" tabindex="${n === ui.roving ? 0 : -1}">${V.tileStatic(n)}</button>`;
+      for (let n = 1; n <= 50; n++) h += `<div class="tile" data-id="sq-${n}">${V.tileStatic(n)}</div>`;
       R.track.innerHTML = h;
       tileCache.length = 0;
     }
@@ -181,21 +180,14 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   }
 
   const tileCache = [];
-  function renderTiles(c) {
+  function renderTiles() {
     const s = game.state;
     for (let n = 1; n <= 50; n++) {
-      const look = V.tileLook(n, s, ui, c);
+      const look = V.tileLook(n, s, ui);
       const prev = tileCache[n];
       const el = R.track.children[n - 1];
-      if (!prev || prev.cls !== look.cls) el.className = `tile hit${look.cls ? ` ${look.cls}` : ''}`;
+      if (!prev || prev.cls !== look.cls) el.className = `tile ${look.cls}`;
       if (!prev || prev.dyn !== look.dyn) el.lastElementChild.innerHTML = look.dyn;
-      if (!prev || prev.disabled !== look.disabled) {
-        if (look.disabled) el.setAttribute('aria-disabled', 'true');
-        else el.removeAttribute('aria-disabled');
-      }
-      if (!prev || prev.label !== look.label) el.setAttribute('aria-label', look.label);
-      const ti = n === ui.roving ? 0 : -1;
-      if (el.tabIndex !== ti) el.tabIndex = ti;
       tileCache[n] = look;
     }
   }
@@ -266,7 +258,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       setRegion('credits', V.credits(s, ui, L));
       paintCredits();
     }
-    if (want('track')) renderTiles(c);
+    if (want('track')) renderTiles();
     if (want('centre')) setRegion('centre', V.centre(s, ui, c, L));
     paintBig();
     if (want('top')) setRegion('top', V.topRow(s, ui, L));
@@ -276,7 +268,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       if (ui.displayWin != null) paintWin();
     }
     if (want('toast')) setRegion('toast', c.modal ? '' : V.toastHtml(ui.toast, L));
-    if (want('tip')) setRegion('tip', tipMarkup(c));
     if (want('modal')) {
       // the 160 ms entrance plays once per dialog: a re-render of the same one (tab, toggle, slider) does not replay it
       const again = !!c.modal && c.modal === shownModal;
@@ -299,26 +290,15 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       case 'recovery': return V.recoveryModal(s, L);
       case 'refill': return V.refillModal(s, ui, L);
       case 'info': return V.infoModal(s, ui, L);
-      case 'fairness': return V.fairnessModal(L);
+      case 'results': return V.resultsModal(L);
       default: return '';
     }
-  }
-
-  function tipMarkup(c) {
-    const s = game.state;
-    if (ui.sheet && c.canBet) return V.tooltip(ui.sheet, s, L, true);
-    if (ui.tip && c.canBet) return V.tooltip(ui.tip, s, L, false);
-    return '';
   }
 
   function focusId(id, ring = true) {
     const el = root.querySelector(`[data-id="${id}"]`);
     if (!el) return;
     if (ring) ui.ringOn = true;
-    if (id.startsWith('sq-')) {
-      ui.roving = Number(id.slice(3));
-      el.tabIndex = 0;
-    }
     el.focus({ preventScroll: true });
     root.classList.toggle('kbd', ui.ringOn);
   }
@@ -408,8 +388,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     const r = game.state.round;
     noteBetTotal(r);
     ui.showLastStop = false;
-    ui.tip = null;
-    ui.sheet = null;
     audio.play('sfx_start');
     const before = r.balanceBefore, after = r.balance;
     ui.displayBalance = before;
@@ -618,14 +596,13 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         ui.showLastStop = false;
         renderStaged(() => {
           const a = document.activeElement;
-          if (game.state.phase === 'BETTING' && (!root.contains(a) || a === document.body || a.getAttribute('aria-disabled') === 'true')) focusId(game.rebetBlock() ? `sq-${ui.roving}` : 'btn-rebet', false);
+          if (game.state.phase === 'BETTING' && (!root.contains(a) || a === document.body || a.getAttribute('aria-disabled') === 'true')) focusId(game.rebetBlock() ? `tier-${TIERS[0]}` : 'btn-rebet', false);
         });
         return;
       case 'REFILL': refillAnim(); break;
       case 'TOGGLE_MUTE': case 'SET_SETTING': audio.setSettings(s.settings); break;
       case 'OPEN_INFO':
         audio.play('sfx_modal');
-        ui.tip = null;
         render();
         focusId(`tab-${s.info}`, ui.ringOn);
         return;
@@ -735,21 +712,20 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     if (!testMode || !globalThis.__RL_TEST__?.noReload) globalThis.location.reload();
   }
 
-  // ------------------------------------------------------------ fairness panel (UI only; same lock as Info/Settings)
-  function openFairness() {
+  // ------------------------------------------------------------ results panel (UI only; same lock as Info/Settings)
+  function openResults() {
     if (!ctx().canInfo) return null;
-    ui.fairness = true;
-    ui.tip = null;
+    ui.results = true;
     audio.play('sfx_modal');
     render();
     focusId('f-close', ui.ringOn);
     return { ok: true };
   }
-  function closeFairness() {
-    if (!ui.fairness) return null;
-    ui.fairness = false;
+  function closeResults() {
+    if (!ui.results) return null;
+    ui.results = false;
     render();
-    focusId('icon-fair', false);
+    focusId('icon-results', false);
     return { ok: true };
   }
 
@@ -780,11 +756,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   // ------------------------------------------------------------ input
   function activate(id, { shift = false } = {}) {
     const d = (a) => game.dispatch(a);
-    if (id.startsWith('sq-')) {
-      const n = Number(id.slice(3));
-      ui.roving = n;
-      return d({ type: shift ? 'REMOVE_BET' : 'ADD_BET', square: n });
-    }
+    if (id.startsWith('tier-')) return d({ type: shift ? 'REMOVE_BET' : 'ADD_BET', tier: Number(id.slice(5)) });
     if (id.startsWith('chip-')) return d({ type: 'SELECT_CHIP', value: Number(id.slice(5)) });
     if (id.startsWith('tab-')) return d({ type: 'SET_TAB', tab: id.slice(4) });
     if (id.startsWith('pick-')) return d({ type: 'PICK', colour: id.slice(5) });
@@ -811,19 +783,13 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       case 'm-reload': return reload();
       case 'icon-stats': ui.infoFrom = id; return d({ type: 'OPEN_INFO', tab: 'paytable' }); // Paytable + Help tabs
       case 'icon-settings': ui.infoFrom = id; return d({ type: 'OPEN_INFO', tab: 'settings' });
-      case 'icon-fair': return openFairness();
-      case 'f-close': return closeFairness();
+      case 'icon-results': return openResults();
+      case 'f-close': return closeResults();
       case 'icon-sound': case 'tg-mute': case 'start-sound': return d({ type: 'TOGGLE_MUTE' });
       case 'tg-rm': return d({ type: 'SET_SETTING', key: 'reducedMotion', value: !game.state.settings.reducedMotion });
       case 'close': return d({ type: 'CLOSE_INFO' });
       case 'start-play': return leaveStart();
       case 'start-help': return leaveStart(() => { if (game.canDispatch({ type: 'OPEN_INFO', tab: 'help' })) d({ type: 'OPEN_INFO', tab: 'help' }); });
-      case 'tip-add': case 'tip-remove': {
-        const n = ui.sheet;
-        const r = d({ type: id === 'tip-add' ? 'ADD_BET' : 'REMOVE_BET', square: n });
-        render(['tip']);
-        return r;
-      }
       default: return null;
     }
   }
@@ -837,8 +803,6 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
     }
   }
 
-  let pressTimer = null;
-  let suppressClick = false;
   root.addEventListener('pointerdown', (e) => {
     if (!ui.start) firstInteraction();
     ui.ringOn = false;
@@ -848,31 +812,12 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       return;
     }
     const h = hitOf(e.target);
-    if (ui.sheet && !(h && h.closest('.tip'))) {
-      ui.sheet = null;
-      render(['tip']);
-    }
     if (h && h.getAttribute('role') === 'slider') {
       dragSlider(h, e);
       e.preventDefault();
     }
-    clearTimeout(pressTimer);
-    if (e.pointerType === 'touch' && h && h.dataset.id.startsWith('sq-') && h.getAttribute('aria-disabled') !== 'true') {
-      const n = Number(h.dataset.id.slice(3));
-      pressTimer = setTimeout(() => {
-        ui.sheet = n;
-        suppressClick = true;
-        render(['tip']);
-      }, LONG_PRESS_MS);
-    }
   });
-  root.addEventListener('pointerup', () => clearTimeout(pressTimer));
-  root.addEventListener('pointercancel', () => clearTimeout(pressTimer));
   root.addEventListener('click', (e) => {
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
     const h = hitOf(e.target);
     if (!h || h.getAttribute('aria-disabled') === 'true' || h.getAttribute('role') === 'slider') return;
     audio.play('sfx_click');
@@ -881,40 +826,7 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
   root.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const h = hitOf(e.target);
-    if (h && h.dataset.id.startsWith('sq-') && h.getAttribute('aria-disabled') !== 'true' && !suppressClick) activate(h.dataset.id, { shift: true });
-  });
-  let tipTimer = null;
-  root.addEventListener('pointerover', (e) => {
-    if (e.pointerType === 'touch') return;
-    const h = hitOf(e.target);
-    const id = h && h.dataset.id.startsWith('sq-') ? h.dataset.id : null;
-    const n = id ? Number(id.slice(3)) : null;
-    if (n === ui.hoverSq) return;
-    ui.hoverSq = n;
-    clearTimeout(tipTimer);
-    if (ui.tip && ui.tip !== n) {
-      ui.tip = null;
-      render(['tip']);
-    }
-    if (n) tipTimer = setTimeout(() => { if (ui.hoverSq === n) { ui.tip = n; render(['tip']); } }, 300);
-  });
-  root.addEventListener('pointerleave', () => {
-    ui.hoverSq = null;
-    ui.tip = null;
-    render(['tip']);
-  });
-  root.addEventListener('focusin', (e) => {
-    const h = hitOf(e.target);
-    if (h && h.dataset.id.startsWith('sq-')) {
-      ui.roving = Number(h.dataset.id.slice(3));
-      if (ui.ringOn) {
-        ui.tip = ui.roving;
-        render(['tip']);
-      }
-    } else if (ui.tip && ui.ringOn) {
-      ui.tip = null;
-      render(['tip']);
-    }
+    if (h && h.dataset.id.startsWith('tier-') && h.getAttribute('aria-disabled') !== 'true') activate(h.dataset.id, { shift: true });
   });
 
   function dragSlider(h, e0) {
@@ -965,28 +877,22 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
       finishGambleLoss();
       return;
     }
-    // Fairness panel: Esc closes it; Enter/Space press the focused button; M still mutes; game keys are ignored
-    if (ui.fairness) {
+    // Results panel: Esc closes it; Enter/Space press the focused button; M still mutes; game keys are ignored
+    if (ui.results) {
       if (e.repeat) return;
-      if (k === 'Escape') closeFairness();
+      if (k === 'Escape') closeResults();
       else if (k === 'm' && !e.ctrlKey) game.dispatch({ type: 'TOGGLE_MUTE' });
       else if ((k === 'Enter' || k === ' ') && h && R.modal.contains(h)) activate(id);
       else return;
       e.preventDefault();
       return;
     }
-    // Long-press sheet: Esc closes it
-    if (ui.sheet && k === 'Escape') {
-      ui.sheet = null;
-      render(['tip']);
-      return;
-    }
     let kind = null;
-    if (id) kind = id.startsWith('sq-') ? 'square' : id.startsWith('chip-') ? 'chip' : id.startsWith('pick-') ? 'pick' : id.startsWith('sl-') ? 'slider' : id.startsWith('tg-') ? 'toggle' : id.startsWith('tab-') ? 'tab' : id.startsWith('icon-') ? 'icon' : 'button';
+    if (id) kind = id.startsWith('tier-') ? 'tier' : id.startsWith('chip-') ? 'chip' : id.startsWith('pick-') ? 'pick' : id.startsWith('sl-') ? 'slider' : id.startsWith('tg-') ? 'toggle' : id.startsWith('tab-') ? 'tab' : id.startsWith('icon-') ? 'icon' : 'button';
     const s = game.state;
     const intent = mapKey(e, {
       phase: s.phase, info: s.info, refill: game.needsRefill(),
-      focus: { kind, square: kind === 'square' ? Number(id.slice(3)) : null },
+      focus: { kind, tier: kind === 'tier' ? Number(id.slice(5)) : null },
     });
     if (e.key === ' ' || e.key === 'Backspace' || e.key.startsWith('Arrow')) e.preventDefault();
     if (!intent) return;
@@ -1018,10 +924,9 @@ export function startApp({ game, root, testMode = false, timeScale = 1, startScr
         if (intent.focusPick && game.state.phase === 'GAMBLE' && !game.state.gamble.revealing) focusId(`pick-${intent.focusPick}`);
         break;
       }
-      case 'focusSquare': {
-        const n = advance(ui.roving, intent.delta);
-        render(['track']);
-        focusId(`sq-${n}`);
+      case 'focusTier': {
+        const i = TIERS.indexOf(Number(id.slice(5)));
+        focusId(`tier-${TIERS[(i + intent.delta + TIERS.length) % TIERS.length]}`);
         break;
       }
       case 'tab': {

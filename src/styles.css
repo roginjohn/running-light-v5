@@ -24,7 +24,6 @@ svg { display: block; }
 /* ---------- focus: 2 px white ring on a 2 px bg-0 gap (shown for keyboard use) ---------- */
 .hit:focus { outline: none; }
 #app.kbd .hit:focus { box-shadow: var(--sh-focus) !important; z-index: var(--z-focus); }
-#app.kbd .tile.hit:focus { box-shadow: var(--sh-focus) !important; }
 #app.kbd .slider.hit:focus { box-shadow: none !important; }
 #app.kbd .slider:focus b { box-shadow: var(--sh-focus); }
 .hit[aria-disabled="true"] { cursor: not-allowed; }
@@ -121,10 +120,9 @@ svg { display: block; }
 .chip.c1 { --chip-bg: var(--c-chip-1); --chip-ink: var(--c-chip-1-ink); } .chip.c5 { --chip-bg: var(--c-chip-5); --chip-ink: var(--c-chip-5-ink); }
 .chip.c10 { --chip-bg: var(--c-chip-10); --chip-ink: var(--c-chip-10-ink); } .chip.c25 { --chip-bg: var(--c-chip-25); --chip-ink: var(--c-chip-25-ink); }
 .chip.c50 { --chip-bg: var(--c-chip-50); --chip-ink: var(--c-chip-50-ink); }
-/* TEMPORARY (Batch 2 adapter, removed in Batch 5): the 7 v5 chips wrap onto a second row in the v3 rail, and the
-   100 / 500 chips use the proposed fills until the batch-4 chip tokens (after the contrast check) */
+/* TEMPORARY (Batch 2 adapter, removed in Batch 5): the 7 v5 chips wrap onto a second row in the v3 rail */
 .chips { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
-.chip.c100 { --chip-bg: #6d28d9; --chip-ink: #fff; } .chip.c500 { --chip-bg: #b45309; --chip-ink: #fff; }
+.chip.c100 { --chip-bg: var(--c-chip-100); --chip-ink: var(--c-chip-100-ink); } .chip.c500 { --chip-bg: var(--c-chip-500); --chip-ink: var(--c-chip-500-ink); }
 .chip.sel::after { content: ''; position: absolute; inset: -4px; border-radius: var(--r-chip); border: var(--b-focus) solid var(--c-focus-ring); }
 .chip[aria-disabled="true"] { opacity: .4; }
 .chip[aria-disabled="true"].sel::after { border-color: var(--c-text-dim); }
@@ -134,25 +132,29 @@ svg { display: block; }
 /* v3 batch 4: flat squares. A light step only swaps classes on <= 4 tiles: lit = tile-lit fill (instant), trail =
    one white overlay (::before) faded by opacity alone (.34 -> .20 -> 0 over 120 ms). No layout property changes. */
 #r-track { position: absolute; inset: 0; contain: layout paint; pointer-events: none; }
-.tile { position: absolute; width: var(--tw); height: var(--th); border-radius: var(--r-tile); background: var(--c-tile); border: 1px solid var(--c-tile-border); z-index: var(--z-track); padding: 0; pointer-events: auto; color: var(--c-text-muted); }
+.tile { position: absolute; width: var(--tw); height: var(--th); border-radius: var(--r-tile); background: var(--c-tile); border: 1px solid var(--c-tile-border); z-index: var(--z-track); padding: 0; color: var(--c-text-muted); }
 .tile::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; background: var(--c-tile-trail); opacity: 0; transition: opacity 120ms linear; pointer-events: none; }
 .tile:is(.trail1, .trailc1, .lvl2)::before { opacity: var(--o-tile-trail-1); transition: none; }
 .tile:is(.trail2, .trailc2, .lvl1)::before { opacity: var(--o-tile-trail-2); }
-.tile .num { display: var(--num-d); position: absolute; left: 6px; top: 5px; font-size: var(--fs-label-xs); line-height: var(--lh-label-xs); font-weight: 600; pointer-events: none; }
-.tile .m { position: absolute; left: 0; right: 0; bottom: 18%; text-align: center; font-size: var(--mult-f); font-weight: 700; line-height: 1; pointer-events: none; }
-.q24 .m { color: var(--c-tier-24); } .q96 .m { color: var(--c-tier-96); } :is(.q480, .q960) .m { color: var(--c-tier-480); }
-.q960 { border-color: var(--c-border-panel-navy); }
-.q1920 { background: var(--c-tile-jackpot); border-color: var(--c-border-panel-navy); } .q1920 .m { color: var(--c-tier-1920); }
-.tb { display: inline-flex; align-items: center; justify-content: center; gap: .05em; font-family: var(--f-display); border-radius: var(--r-sm); line-height: 1; white-space: nowrap; }
-.tb .ic { width: .95em; height: .95em; }
-.t24 { background: var(--t24); color: var(--t24-ink); } .t96 { background: var(--t96); color: var(--t96-ink); } .t480 { background: var(--t480); color: var(--t480-ink); }
-.t960 { background: var(--t960); color: var(--t960-ink); } .t1920 { background: var(--t1920); color: var(--t1920-ink); }
-.tile .bet { position: absolute; right: 4px; top: 4px; height: var(--badge); min-width: var(--badge); padding: 0 4px; font-size: 11px; font-weight: 700; display: grid; place-items: center; background: var(--c-accent-blue); color: var(--c-text-strong); border-radius: var(--r-pill); line-height: 1; z-index: 3; pointer-events: none; }
-.tile .bet.ghost { background: var(--c-tile); color: var(--c-accent-blue-text); border: 1.5px solid var(--c-accent-blue-text); }
-.tile:not([aria-disabled="true"], .lit, .win):hover { background: var(--c-bg-input); border-color: var(--c-border-input); }
-.tile[aria-disabled="true"] { cursor: default; }
+.tile .num { display: var(--num-d); position: absolute; left: 6px; top: 4px; font-size: var(--fs-label-sm); line-height: var(--lh-label-xs); font-weight: 600; }
+.tile .m { position: absolute; left: 50%; top: calc(50% + var(--m-dy)); transform: translate(-50%, -50%); display: flex; align-items: baseline; font-size: var(--mult-f); font-weight: 700; line-height: 1; white-space: nowrap; letter-spacing: -.04em; }
+#app[data-bp^="desktop"] .tile .m:not(.nw) { font-family: var(--f-mono); font-weight: 600; letter-spacing: 0; }
+#app[data-bp^="desktop-xl"] .tile .x { font-size: .7em; }
+#app[data-bp="phone"] .tile .x { display: none; }
+/* six tiers, six tokens; the label always names the tier, so colour is never the only cue */
+.q5 .m { color: var(--c-tier-5); } .q10 .m { color: var(--c-tier-10); } .q20 .m { color: var(--c-tier-20); } .q50 .m { color: var(--c-tier-50); }
+.q50 { border-color: var(--c-border-panel-navy); }
+.q100 { background: var(--c-tile-jackpot); border-color: var(--c-border-panel-navy); } .q100 .m { color: var(--c-tier-100); }
+.q200 { background: var(--c-tile-jackpot); border-color: var(--c-tier-200); } .q200 .m { color: var(--c-tier-200); }
+/* blank square (tiers/SPEC.md §2.4): darker, hatched, dashed edge and the no-win glyph, plus "No win" where it fits */
+.qblank, .bkey .sw { background: var(--c-tile-blank) repeating-linear-gradient(135deg, transparent 0 5px, var(--c-tile-blank-hatch) 5px 7px); border: 1px dashed var(--c-tile-blank-edge); }
+.tile .m.nw { flex-direction: column; align-items: center; gap: 2px; font-size: var(--fs-label-sm); letter-spacing: 0; font-weight: 600; }
+.noglyph { position: relative; display: block; flex: none; width: var(--no-s); height: var(--no-s); border: 1.5px solid var(--c-tile-blank-edge); border-radius: 50%; }
+.noglyph::after { content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1.5px; margin-left: -.75px; background: var(--c-tile-blank-edge); transform: rotate(45deg); }
+.nwt { display: var(--nw-d); line-height: 14px; }
 .tile:is(.lit, .lit2) { background: var(--c-tile-lit); border-color: var(--c-tile-lit); color: var(--c-text-on-light); z-index: var(--z-light-layer); }
 .tile:is(.lit, .lit2) .m { color: var(--c-text-on-light); }
+.tile:is(.lit, .lit2) .noglyph { border-color: var(--c-text-on-light); } .tile:is(.lit, .lit2) .noglyph::after { background: var(--c-text-on-light); }
 /* landing square: the lit tile pops once (transform only) when the run stops on it */
 .tile.land { animation: land 260ms cubic-bezier(.2,.8,.2,1); }
 @keyframes land { from { transform: scale(1.12); } }
@@ -160,14 +162,11 @@ svg { display: block; }
    Double Run stops say "1st" / "2nd" in place of the number. No glow, ring, pulse or WIN tag. */
 .tile.win { background: var(--c-accent-green); border-color: var(--c-accent-green); color: var(--c-text-on-green); z-index: var(--z-light-layer); }
 .tile.win .m { color: var(--c-text-on-green); }
-.tile:is(.win, .lit, .lit2) .bet { background: var(--c-bg-page); }
 .tile.mk .num { display: none; }
-.tile .mkt { position: absolute; left: 6px; top: 5px; font-size: var(--fs-label-xs); line-height: var(--lh-label-xs); font-weight: 700; pointer-events: none; }
-#app:not([data-bp="desktop-xl"]) .tile .mkt { left: 3px; font-size: 10px; letter-spacing: -.03em; display: var(--mk-d); } /* 48 px tiles: clear of the badge */
-#app:not([data-bp="desktop-xl"]) .tile.mk .bet { right: 2px; top: 2px; }
-/* tablet tiles (38-39 px, batch 6): the stop's badge sits on the tile's corner, in the 6 px gap, and the marker moves
-   up, so "2nd" and a 2-digit badge stay apart and clear of the multiplier; hidden below 30 px tiles (--mk-d) */
-#app[data-bp^="tablet"] .tile .mkt { top: 2px; } #app[data-bp^="tablet"] .tile.mk .bet { right: -5px; top: -5px; }
+.tile .mkt { position: absolute; left: 6px; top: 5px; font-size: var(--fs-label-xs); line-height: var(--lh-label-xs); font-weight: 700; }
+#app:not([data-bp="desktop-xl"]) .tile .mkt { left: 3px; font-size: 10px; letter-spacing: -.03em; display: var(--mk-d); }
+/* tablet tiles (38-39 px): the marker moves up, clear of the multiplier; hidden on phone tiles (--mk-d) */
+#app[data-bp^="tablet"] .tile .mkt { top: 2px; }
 
 /* centre (v3 batch 4): flat text on the frame fill. The big number box has a fixed size and strict containment,
    so its per-step text change is laid out inside it only. */
@@ -188,10 +187,17 @@ svg { display: block; }
 .csub { font-size: var(--fs-label-md); line-height: var(--lh-label-md); font-weight: 600; color: var(--c-text-muted); }
 :is(.csub, .toprow, .gnote) b { color: var(--c-text-strong); font-weight: 700; }
 .pays { display: flex; gap: var(--sp-2); margin-top: var(--sp-1); }
-.pay { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--c-text-muted); font-size: 11px; font-weight: 600; }
-.pay b { height: 28px; padding: 0 16px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--c-bg-card-pill); color: var(--c-text-primary); font-size: var(--fs-label-md); }
-.pay i { font-style: normal; }
+/* TEMPORARY (Batch 5 replaces these with the six tier spots): the pays row takes the bets while the ring is display-only */
+.pay { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--c-text-muted); font-size: var(--fs-label-sm); font-weight: 600; }
+.pay b { height: 28px; padding: 0 16px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--c-bg-card-pill); border: 1px solid transparent; font-size: var(--fs-label-md); }
+.pay:not([aria-disabled="true"]):hover b { border-color: var(--c-border-input); }
+.pay.has b { border-color: var(--c-accent-blue); } .pay.has i { color: var(--c-accent-blue-text); }
+.pay.ghost b { border: 1px dashed var(--c-accent-blue-text); }
+.pay[aria-disabled="true"] { cursor: default; }
+.pay i { font-style: normal; color: var(--c-text-muted); }
 .pay.on b { background: var(--c-accent-green); color: var(--c-text-on-green); } .pay.on i { color: var(--c-accent-green-text); }
+.bkey { display: flex; align-items: center; gap: 6px; font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); white-space: nowrap; }
+.bkey .sw { flex: none; width: 16px; height: 16px; border-radius: 3px; }
 /* result cards (component sheet): "#13 [480x] Bet × pays 5 × 480 = 2,400" (green border + value when won) */
 .cards { display: flex; gap: var(--sp-3); }
 .card { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-card); background: var(--c-bg-card); border: 1px solid var(--c-divider); text-align: left; font-size: var(--fs-label-sm); color: var(--c-text-muted); white-space: nowrap; }
@@ -239,20 +245,13 @@ svg { display: block; }
 .tg { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; white-space: nowrap; }
 .tps { display: flex; flex-wrap: wrap; gap: 6px; height: 24px; overflow: hidden; min-width: 0; }
 .tp, .lb { height: 24px; min-width: 30px; padding: 0 8px; display: grid; place-items: center; border-radius: var(--r-pill); border: 1px solid var(--c-divider); color: var(--c-text-primary); font-weight: 700; }
-.k24 { color: var(--c-tier-24); } :is(.k480, .k960) { color: var(--c-tier-480); } .k1920 { background: var(--c-tile-jackpot); border-color: var(--c-border-panel-navy); color: var(--c-tier-1920); }
+.k5 { color: var(--c-tier-5); } .k10 { color: var(--c-tier-10); } .k20 { color: var(--c-tier-20); } .k50 { color: var(--c-tier-50); } .k100 { color: var(--c-tier-100); } .k200 { color: var(--c-tier-200); }
+.tp:is(.k100, .k200) { background: var(--c-bg-panel-navy); border-color: var(--c-border-panel-navy); }
 .tp.won { border-color: var(--c-accent-green); } .tp.new { border-color: var(--c-text-primary); }
 .lb { border: 0; border-radius: var(--r-input); background: var(--c-bg-input); color: var(--c-text-muted); }
 .lb.new { background: var(--c-border-input); color: var(--c-text-strong); }
 
-/* tooltip / long-press sheet, toast */
-.tip { position: absolute; z-index: var(--z-tooltip); background: var(--c-bg-frame); border: 1px solid var(--c-line-hi); border-radius: var(--r-md); pointer-events: none; }
-.tip.sheet { pointer-events: auto; }
-.tip::after { content: ''; position: absolute; width: 10px; height: 10px; background: var(--c-bg-frame); border-left: 1px solid var(--c-line-hi); border-bottom: 1px solid var(--c-line-hi); top: 22px; }
-.tip.arrow-left::after { left: -6px; transform: rotate(45deg); }
-.tip.arrow-right::after { right: -6px; transform: rotate(225deg); }
-.tip.arrow-up::after { display: none; }
-.tip .tbtns { display: flex; gap: 8px; margin-top: 10px; }
-.tip .tbtns .btn { flex: 1; height: 44px; font-size: 15px; }
+/* toast */
 .toast { position: absolute; z-index: var(--z-toast); display: flex; align-items: center; gap: .6em; border-radius: var(--r-lg); background: var(--c-bg-card); border: 1px solid rgba(255,93,115,.55); color: var(--c-text-hi); font-weight: 700; animation: toastin 160ms ease-out; }
 .toast.out { animation: toastout 240ms ease-in forwards; }
 @keyframes toastin { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -283,7 +282,7 @@ svg { display: block; }
 .dcode { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-input); background: var(--c-bg-card); font: 600 12px/18px var(--f-mono); color: var(--c-text-primary); }
 .dbtn { width: 100%; height: 52px; margin-top: var(--sp-1); font-size: var(--fs-label-lg); }
 .dfoot { text-align: center; font-size: var(--fs-label-sm); color: var(--c-text-primary); }
-/* game info and fairness: header, three columns (or tabs), footer */
+/* game info and the results panel: header, three columns (or tabs), footer */
 .dlg.info { padding: 0; gap: 0; }
 .ihead { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-6); border-bottom: 1px solid var(--c-divider); color: var(--c-text-muted); }
 .ihead h2 { flex: 1; font-size: var(--fs-label-lg); color: var(--c-text-strong); }
@@ -319,7 +318,7 @@ svg { display: block; }
 .ptab th { padding: 0 var(--sp-2) var(--sp-2); text-align: left; vertical-align: bottom; font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); }
 .ptab td { padding: var(--sp-2); border-top: 1px solid var(--c-divider); }
 .ptab td:last-child { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); color: var(--c-text-muted); }
-.ppill { display: inline-grid; place-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--c-bg-card-pill); border: 1px solid var(--c-divider); font-weight: 700; color: var(--c-tier-96); }
+.ppill { display: inline-grid; place-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--c-bg-card-pill); border: 1px solid var(--c-divider); font-weight: 700; }
 .pnotes { display: flex; flex-direction: column; gap: 6px; margin-top: var(--sp-3); font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
 .isteps { list-style: none; display: flex; flex-direction: column; gap: var(--sp-3); }
 .isteps li { display: flex; gap: var(--sp-3); }
@@ -348,6 +347,42 @@ svg { display: block; }
 /* type warm-up (app.js warmType): laid out for its text shaping, never painted or hit */
 .warm { position: absolute; left: 0; top: 0; width: 100%; height: 100%; contain: strict; visibility: hidden; pointer-events: none; }
 #loading.done { opacity: 0; pointer-events: none; visibility: hidden; transition: opacity 300ms ease-out, visibility 0s 300ms; }
+
+/* ---------- phones (v5 batch 4, < 600 px portrait): bar on top, 11x16 or 12x15 ring, compact dock; 44 px targets ---------- */
+#app[data-bp="phone"] :is(.frame, .frame-bar) { border-radius: 0; }
+#app[data-bp="phone"] .frame-bar { border-bottom: var(--b-hairline) solid var(--c-divider); }
+#app[data-bp="phone"] .bbar { grid-template-columns: 1fr auto; padding: 0; }
+#app[data-bp="phone"] .bbar .bb-c { display: none; }
+#app[data-bp="phone"] .bbar .bb-l { gap: 0; }
+#app[data-bp="phone"] .bbar .ibtn { width: 44px; height: 44px; }
+.dock.ph { display: flex; flex-direction: column; gap: var(--gap-y); padding: 8px 12px 10px; background: var(--c-bg-bottombar); }
+.dock.ph .chips { flex-wrap: nowrap; justify-content: space-between; gap: 0; padding: 0; }
+.dock.ph .chip .cv { font-size: 13px; }
+.phact { display: flex; gap: var(--sp-2); }
+.phact .acts .btn { flex: none; width: 58px; height: var(--act-h); }
+.phact .mains { flex: 1; flex-direction: row; min-width: 0; }
+.dock.ph :is(.mains, .phact) > .btn.stack { flex: 1; width: auto; min-width: 0; padding: 0 var(--sp-1); }
+.dock.ph .btn .sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+#app[data-bp="phone"] .centre { gap: 6px; }
+#app[data-bp="phone"] .cps { flex-wrap: wrap; justify-content: center; gap: var(--sp-1); }
+#app[data-bp="phone"] .ctxt { gap: 2px; max-width: 100%; }
+#app[data-bp="phone"] .ctitle { font-size: 16px; line-height: 20px; }
+#app[data-bp="phone"] .csub { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
+#app[data-bp="phone"] .pays { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-1); width: 100%; margin-top: 0; }
+#app[data-bp="phone"] .pay { min-height: 44px; gap: 0; }
+#app[data-bp="phone"] .pay b { width: 100%; height: 26px; padding: 0; }
+#app[data-bp="phone"] .pay i { line-height: var(--lh-label-sm); }
+#app[data-bp="phone"] .cards { flex-direction: column; gap: var(--sp-1); width: 100%; }
+#app[data-bp="phone"] .card { gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); justify-content: center; }
+#app[data-bp="phone"] .gband { flex-wrap: wrap; justify-content: center; gap: 2px var(--sp-2); padding: var(--sp-1) var(--sp-2); white-space: normal; }
+#app[data-bp="phone"] .gpanel { gap: 6px; padding: var(--sp-2); }
+#app[data-bp="phone"] .gdiscs { gap: var(--sp-2); }
+#app[data-bp="phone"] .gcards { gap: var(--sp-1); align-self: stretch; }
+#app[data-bp="phone"] .gc { flex: 1; min-width: 0; padding: var(--sp-1) 6px; font-size: var(--fs-label-sm); }
+#app[data-bp="phone"] .gmsg, #app[data-bp="phone"] .gnote, #app[data-bp="phone"] .grec { font-size: var(--fs-label-sm); line-height: var(--lh-label-sm); }
+@media (max-height: 700px) {
+  #app[data-bp="phone"] :is(.csub, .gnote, .grec) { display: none; }
+}
 
 /* reduced motion: no trail or pops; the gamble flip becomes a 120 ms crossfade */
 .reduced .tile::before, .reduced .tgl i, .reduced .chip, .reduced .btn { transition: none !important; }
