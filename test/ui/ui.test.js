@@ -321,7 +321,7 @@ test('refill at 0: dialog cannot be dismissed, Enter refills to 10,000', async (
 
 // ------------------------------------------------------------------ settings, storage, recovery
 test('corrupt settings key -> defaults + notice + toast (no ERROR); other keys untouched', async () => {
-  const page = await fresh({ presetStorage: { 'rl.v1.settings': '{not json', 'rl.v1.balance': JSON.stringify({ v: 777, seq: 3 }) } });
+  const page = await fresh({ presetStorage: { 'rl.v5.settings': '{not json', 'rl.v5.balance': JSON.stringify({ v: 777, seq: 3 }) } });
   const s = await state(page);
   assert.equal(s.phase, 'BETTING');
   assert.deepEqual(s.settings, { mute: false, music: 60, sfx: 80, reducedMotion: false });
@@ -332,14 +332,14 @@ test('corrupt settings key -> defaults + notice + toast (no ERROR); other keys u
   assert.match(await text(page, '#r-modal'), /Turbo ?Placeholder – pending approval/i);
   assert.equal(await attr(page, 'tg-turbo', 'aria-disabled'), 'true', 'Turbo is a disabled placeholder');
   // invalid (parseable) settings are reset too
-  const p2 = await fresh({ presetStorage: { 'rl.v1.settings': JSON.stringify({ mute: 'yes', music: 500 }) } });
+  const p2 = await fresh({ presetStorage: { 'rl.v5.settings': JSON.stringify({ mute: 'yes', music: 500 }) } });
   assert.equal((await state(p2)).phase, 'BETTING');
   await p2.__done();
   await page.__done();
 });
 
 test('corrupt round key -> ERROR dialog -> Reload resets only that key', async () => {
-  const page = await fresh({ noReload: true, presetStorage: { 'rl.v1.round': '{broken', 'rl.v1.balance': JSON.stringify({ v: 500, seq: 2 }) } });
+  const page = await fresh({ noReload: true, presetStorage: { 'rl.v5.round': '{broken', 'rl.v5.balance': JSON.stringify({ v: 500, seq: 2 }) } });
   assert.equal((await state(page)).phase, 'ERROR');
   assert.match(await text(page, '#r-modal'), /Something went wrong/);
   assert.match(await text(page, '#r-modal'), /E-CORRUPT-ROUND/);
@@ -349,7 +349,27 @@ test('corrupt round key -> ERROR dialog -> Reload resets only that key', async (
   const s = await state(page);
   assert.equal(s.phase, 'BETTING');
   assert.equal(s.balance, 500);
-  assert.equal(await page.evaluate(() => localStorage.getItem('rl.v1.round')), null);
+  assert.equal(await page.evaluate(() => localStorage.getItem('rl.v5.round')), null);
+  await page.__done();
+});
+
+test('v1 -> v5 migration: a saved rl.v1.balance of 500 reloads as 10,000 with the one-time toast; v1 keys kept', async () => {
+  const v1 = { 'rl.v1.balance': JSON.stringify({ v: 500, seq: 2 }), 'rl.v1.settings': JSON.stringify({ mute: true, music: 30, sfx: 50, reducedMotion: false }) };
+  const page = await fresh({ timeScale: 1, presetStorage: v1 });
+  const s = await state(page);
+  assert.equal(s.phase, 'BETTING');
+  assert.equal(s.balance, 10000);
+  assert.equal(s.settings.mute, true, 'v1 settings carried over');
+  assert.match(await toastText(page), /Game updated – credits reset to 10,000/);
+  assert.doesNotMatch(await toastText(page), /Progress won't be saved/);
+  const stored = await page.evaluate(() => ({ ...localStorage }));
+  for (const [k, v] of Object.entries(v1)) assert.equal(stored[k], v, `${k} untouched`);
+  assert.equal(JSON.parse(stored['rl.v5.balance']).v, 10000);
+  // shown once: a second load keeps 10,000 and shows no toast
+  await openGame(browser, url, { seed: 11, keepStorage: true }, page);
+  assert.equal((await state(page)).balance, 10000);
+  assert.doesNotMatch(await toastText(page), /Game updated/);
+  assert.equal(await page.evaluate(() => localStorage.getItem('rl.v1.balance')), v1['rl.v1.balance']);
   await page.__done();
 });
 
@@ -874,6 +894,38 @@ test('last bets (top row, right of "Last results"): each round shows its TOTAL b
   const lbs = await page.evaluate(() => [...document.querySelectorAll('#r-top [data-role="last-bets"] .lb')].map((e) => [e.textContent, e.classList.contains('new')]));
   assert.deepEqual(lbs, [['12', true], ['6', false]]);
   assert.match(await page.evaluate(() => document.querySelector('[data-role="last-bets"]').getAttribute('aria-label')), /newest first: 12, 6/);
+  await page.__done();
+});
+
+// valid for the old reader, with spacing and key order JSON.stringify would not produce, so a rewrite would show
+const OLD_TOTALS = { 'rl.v3.betTotals': '[ {"t":777, "id":"old-1"},\n  {"t":40, "id":null} ]' };
+const lastBetsShown = (page) => page.evaluate(() => [...document.querySelectorAll('#r-top [data-role="last-bets"] .lb')].map((e) => e.textContent));
+const stored = (page) => page.evaluate(() => ({ ...localStorage }));
+
+test('last bets: a saved rl.v3.betTotals is ignored and untouched; new totals go to rl.v5.betTotals', async () => {
+  const old = { ...OLD_TOTALS, 'rl.v1.balance': JSON.stringify({ v: 500, seq: 2 }), 'rl.v1.lastBets': JSON.stringify({ 8: 10 }) };
+  const page = await fresh({ presetStorage: old });
+  assert.match(await text(page, '#r-top [data-role="last-bets"]'), /Last bets:\s*None yet/);
+  assert.deepEqual(await page.evaluate(() => window.__rl.app.ui.betTotals), []);
+  assert.equal((await stored(page))['rl.v5.betTotals'], undefined, 'no old total copied or seeded');
+  await setup(page, { balance: 1000, bets: { 20: 5, 50: 1 }, chip: 1, history: [] });
+  await playTo(page, 27, null, 'BETTING');
+  assert.deepEqual(await lastBetsShown(page), ['6']);
+  assert.deepEqual(JSON.parse((await stored(page))['rl.v5.betTotals']).map((e) => e.t), [6]);
+  // after a reload: still only the new total, and the old keys are still byte-for-byte the same
+  await openGame(browser, url, { seed: 11, keepStorage: true }, page);
+  assert.deepEqual(await lastBetsShown(page), ['6']);
+  const after = await stored(page);
+  for (const [k, v] of Object.entries(old)) assert.equal(after[k], v, `${k} untouched`);
+  await page.__done();
+});
+
+test('last bets: the first-load seed uses the saved rl.v5.lastBets, never rl.v3.betTotals', async () => {
+  const page = await fresh({ presetStorage: { ...OLD_TOTALS, 'rl.v5.lastBets': JSON.stringify({ 20: 5 }) } });
+  assert.deepEqual(await lastBetsShown(page), ['5']);
+  const after = await stored(page);
+  assert.deepEqual(JSON.parse(after['rl.v5.betTotals']), [{ id: null, t: 5 }]);
+  assert.equal(after['rl.v3.betTotals'], OLD_TOTALS['rl.v3.betTotals']);
   await page.__done();
 });
 

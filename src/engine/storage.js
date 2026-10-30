@@ -1,20 +1,32 @@
-// Persistence adapter + validation (spec B6, B7).
+// Persistence adapter + validation (spec B6, B7) and the v1 -> v5 migration (v5 dev spec §2.5).
 //
 // Atomic write approach (B7 "one setItem"): every balance-changing transition writes the ROUND RECORD
 // first, and that record carries the resulting balance and a monotonically increasing `seq`.
-// `rl.v1.balance` stores { v, seq }. On load, whichever of the two has the higher seq is authoritative,
+// `rl.v5.balance` stores { v, seq }. On load, whichever of the two has the higher seq is authoritative,
 // so a crash between the two setItem calls can never make balance and round disagree.
 import { MAX_GAMBLES, HISTORY_STORED } from './config.js';
 import { validBets, totalOf, isSquare, sameBets } from './bets.js';
 import { payout } from './outcome.js';
 
 export const KEYS = Object.freeze({
+  balance: 'rl.v5.balance',
+  settings: 'rl.v5.settings',
+  lastBets: 'rl.v5.lastBets',
+  round: 'rl.v5.round',
+  history: 'rl.v5.history',
+});
+
+/** v1/v3 keys. Read once by the migration and NEVER written or removed (deleting them needs Rogin's approval). */
+export const V1_KEYS = Object.freeze({
   balance: 'rl.v1.balance',
   settings: 'rl.v1.settings',
   lastBets: 'rl.v1.lastBets',
   round: 'rl.v1.round',
   history: 'rl.v1.history',
 });
+
+/** Set on the first v5 load, so the migration (and its one-time toast) runs once per device. */
+export const MIGRATION_KEY = 'rl.v5.migrated';
 
 export const ROUND_PHASES = ['SPINNING', 'RESOLVING', 'DOUBLE_RUN', 'GAMBLE_OFFER', 'GAMBLE', 'PAYOUT', 'SETTLED'];
 
@@ -34,7 +46,7 @@ export function detectBackend() {
   try {
     const ls = globalThis.localStorage;
     if (!ls) throw new Error('no localStorage');
-    const k = 'rl.v1.__probe';
+    const k = 'rl.v5.__probe';
     ls.setItem(k, '1');
     if (ls.getItem(k) !== '1') throw new Error('probe mismatch');
     ls.removeItem(k);
@@ -44,9 +56,53 @@ export function detectBackend() {
   }
 }
 
+/**
+ * First v5 load (runs once, guarded by MIGRATION_KEY). Old balances are not carried over: with no rl.v5.balance the
+ * game starts at START_CREDITS (10,000). Valid v1 settings are copied to rl.v5.settings. v1 lastBets, round and
+ * history are square-keyed and are ignored (not treated as corrupt); an in-progress v1 round is discarded with no
+ * payout. Nothing under rl.v1.* is written or removed.
+ * Returns { notice, settingsCopied, discardedRound }; notice = show the one-time "Game updated" toast.
+ */
+export function migrateFromV1(backend) {
+  const res = { notice: false, settingsCopied: false, discardedRound: false };
+  try {
+    if (backend.getItem(MIGRATION_KEY) != null) return res;
+    const hasV1 = Object.values(V1_KEYS).some((k) => backend.getItem(k) != null);
+    if (hasV1 && backend.getItem(KEYS.balance) == null) {
+      res.notice = true;
+      res.discardedRound = backend.getItem(V1_KEYS.round) != null;
+      const raw = backend.getItem(V1_KEYS.settings);
+      let s = null;
+      try { s = raw == null ? null : JSON.parse(raw); } catch { s = null; }
+      if (validSettings(s) && backend.getItem(KEYS.settings) == null) {
+        const { mute, reducedMotion, music, sfx } = s;
+        backend.setItem(KEYS.settings, JSON.stringify({ mute, reducedMotion, music, sfx }));
+        res.settingsCopied = true;
+      }
+    }
+    backend.setItem(MIGRATION_KEY, JSON.stringify({ v: 5, notice: res.notice }));
+  } catch {
+    // a failed migration write is not fatal: the game still starts at 10,000 on the v5 keys
+  }
+  return res;
+}
+
+function readable(backend) {
+  try {
+    backend.getItem(KEYS.balance);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function createStore(backend) {
+  // storage that won't load falls back to memory (fresh 10,000); the caller passes persistent=false for the toast
+  if (!readable(backend)) backend = memoryBackend();
+  const migration = migrateFromV1(backend);
   return {
     backend,
+    migration,
     /** Returns { ok, value, present }. ok=false means present but unparseable. */
     read(key) {
       const raw = backend.getItem(key);

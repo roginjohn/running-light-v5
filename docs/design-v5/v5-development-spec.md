@@ -75,7 +75,7 @@ Other config changes:
 - Gamble: offered on a win of 300,000 or less, at most 3 gambles, with the existing fair 50/50 logic. Only the cap changes.
 
 ### 2.5 Storage, balance reset and migration (storage.js)
-- New keys `rl.v5.*` (balance, settings, lastBets, round, history).
+- New keys `rl.v5.*` (balance, settings, lastBets, round, history), plus the UI-only `rl.v5.betTotals` ("Last bets" totals, `src/ui/bettotals.js`). Totals start empty: `rl.v3.betTotals` is not read, written or removed. On a load with no list, the totals are seeded from `rl.v5.lastBets` only.
 - First v5 load:
   - If `rl.v5.balance` is missing, set the balance to 10,000. Old v1 balances are **not** carried over.
   - Settings (sound and similar) are copied from `rl.v1.settings`.

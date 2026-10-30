@@ -1,7 +1,8 @@
 // "Last bets" (v3 batch 3): the total bet of each recent round, newest first. The engine history keeps stops and
 // wins but not the bet, so the UI records round.totalBet at START (keyed by roundId so a restored round is not
-// counted twice) and keeps the list in its own storage key.
-export const BET_TOTALS_KEY = 'rl.v3.betTotals';
+// counted twice) and keeps the list in its own storage key. v5 starts with an empty list: older keys are not read,
+// written or removed.
+export const BET_TOTALS_KEY = 'rl.v5.betTotals';
 export const BET_TOTALS_SHOWN = 5;
 
 const valid = (list) => Array.isArray(list) && list.every((e) => e && Number.isInteger(e.t) && e.t > 0 && (e.id === null || typeof e.id === 'string'));
