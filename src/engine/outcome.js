@@ -57,7 +57,7 @@ export function winParts(bets, s1, s2 = null) {
   return { lights, total: lights.reduce((a, l) => a + l.amount, 0) };
 }
 
-/** Fair gamble draw: randInt(2) === 0 ? 'red' : 'white'. */
+/** Gamble draw: randInt(2) === 0 ? 'red' : 'white'. */
 export function gambleDraw(rng) {
   return rng.randInt(2) === 0 ? 'red' : 'white';
 }

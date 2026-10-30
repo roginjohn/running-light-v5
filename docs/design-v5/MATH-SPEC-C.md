@@ -49,4 +49,4 @@ config: COUNT [12,8,4,3,2,1], WEIGHT [160,120,120,64,48,48], blank count 20 weig
 1. Squares are still not equally likely: a blank is ~7× as likely as the 200x square (vs 20× in B). Board now shows ~40% blank squares vs 65% of stops — closer but not exact; paytable odds must stay visible.
 2. 5x lost 6 squares (18→12) but is still the largest group; 10x 12→8, 20x 6→4, 50x 4→3.
 3. ~64% of rounds pay nothing on any tier (same as B; inherent to 95.4% on these multipliers).
-4. Never claim fairness/compliance; simulated credits only.
+4. Never make outcome-verification or regulatory claims; simulated credits only.

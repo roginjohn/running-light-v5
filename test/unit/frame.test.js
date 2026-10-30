@@ -1,5 +1,5 @@
 // v3 page frame (batch 2): frame, rail, divider, game area and bottom bar geometry from tokens.md §4, and the
-// copy rule (no "provably fair" claim anywhere in the UI).
+// copy rule (no outcome-verification claim anywhere in the UI).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -45,7 +45,7 @@ test('768x1024 (tablet portrait): game area, dock and bottom bar stacked inside 
   assert.equal(L.bar.y + L.bar.h, L.frame.y + L.frame.h);
 });
 
-test('no "provably fair" claim anywhere in the UI source or page', () => {
+test('no outcome-verification claim anywhere in the UI source or page', () => {
   const files = ['../../index.html', '../../src/main.js', ...readdirSync(new URL('../../src/ui/', import.meta.url)).map((f) => `../../src/ui/${f}`)];
   for (const f of files) assert.doesNotMatch(readFileSync(new URL(f, import.meta.url), 'utf8'), /provabl/i, f);
 });

@@ -52,7 +52,7 @@ test('E1.5 gamble: no gamble without pick; match doubles; mismatch zeroes -> PAY
   assert.equal(g.state.round.settled, true);
 });
 
-test('E1.5 gamble uses randInt(2) from the injected RNG (fair mapping)', () => {
+test('E1.5 gamble uses randInt(2) from the injected RNG (even mapping)', () => {
   const rng = scriptedRng([rOf(13), 5, /*gamble*/ 1]);
   const { g } = newGame({ rng });
   bet(g, 20, 5);
