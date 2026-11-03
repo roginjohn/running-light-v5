@@ -131,7 +131,6 @@ The UI tests and screenshots use `puppeteer-core` with an installed Chrome: set 
     `--tier-200`, the 100/500 chip colours and the contrast pairs).
   - `src/styles/tokens.css`: generated from it by `scripts/gen-tokens.js` before every `dev` and `build`. Don't edit it
     by hand. The script fails if any WCAG contrast pair is below its minimum.
-  - `src/data/design-tokens.json`: the v1 tokens, read only by the retired v1 renderer `src/ui/svg.js`.
   - [`docs/design-v3/tokens.json`](docs/design-v3/tokens.json) and [`docs/design-v3/tokens.md`](docs/design-v3/tokens.md):
     the approved v3 design tokens (the batch 7 contrast audit changed a few values since, see
     [`docs/design-v5/batch-7/COMPARISON.md`](docs/design-v5/batch-7/COMPARISON.md)).
@@ -142,7 +141,7 @@ The UI tests and screenshots use `puppeteer-core` with an installed Chrome: set 
 src/engine/        game core, no framework (config, rng, outcome, bets, game, storage, lightpath).
                    Locked to MATH-SPEC-C, see CONTRIBUTING.md
 src/ui/            app.js (controller), view.js (state -> HTML, incl. paytable and help), layout.js, track.js,
-                   lightplan.js, keys.js, announce.js, bettotals.js, icons.js, audio.js (render.js, svg.js: retired v1)
+                   lightplan.js, keys.js, announce.js, bettotals.js, icons.js, audio.js
 src/styles.css     styles; src/styles/tokens.css is generated
 src/data/          design token files
 src/assets/        fonts/ (WOFF2), v2/ (icons)
@@ -151,7 +150,8 @@ scripts/           gen-tokens.js, simulate.js, sim-gamble.js, build-preview.js, 
 test/unit/         node:test suites (v5 suites in test/unit/v5/); test/fixtures/math-c.js
 test/ui/           puppeteer UI and a11y tests, screenshots, perf budget and trace
 docs/design-v5/    v5 specs, mockups (tiers/) and batch review sets (batch-4 … batch-8)
-docs/design-v3/    v3 design docs and batch notes (historical)
+docs/design-v3/    v3 design tokens, mockups and batch notes (historical; the batch screenshots
+                   are in roginjohn/running-light at tag v3.0)
 docs/development-spec.md   the older v3 development spec (historical)
 .github/workflows/ci.yml   CI
 ```
