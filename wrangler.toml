@@ -1,0 +1,10 @@
+# Assets-only Worker (no script): serves the static files in ./cf-dist.
+# cf-dist is built by .github/workflows/deploy-cloudflare.yml from the gh-pages branch.
+# Do not commit cf-dist (it is in .gitignore).
+name = "running-light-v5"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[assets]
+directory = "./cf-dist"
+not_found_handling = "none"
