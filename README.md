@@ -171,3 +171,12 @@ Requires Node 22+ (see `.nvmrc`). From the repo root:
 - `npm run test:ui` — UI and a11y tests (builds first via `pretest:ui`); needs Chrome: set `CHROME=/path/to/chrome` (default `/usr/bin/google-chrome`)
 
 CI (`.github/workflows/ci.yml`) runs these on every pull request and on every push to `main`.
+
+## Cloudflare deploy
+
+`.github/workflows/deploy-cloudflare.yml` deploys the `gh-pages` files to the Worker `running-light-v5`
+(https://running-light-v5.roginjohn.workers.dev/), configured by `wrangler.toml` and `cloudflare/`. It runs on every
+GitHub Pages build (`page_build` event) or manually (Actions > Deploy to Cloudflare > Run workflow).
+
+It needs two repo secrets: `CLOUDFLARE_API_TOKEN` (permission Account > Workers Scripts: Edit, scoped to the one
+account) and `CLOUDFLARE_ACCOUNT_ID`. Without them the workflow only stages the files and does a dry run.
