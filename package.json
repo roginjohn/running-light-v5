@@ -26,6 +26,9 @@
     "predev": "node scripts/gen-tokens.js",
     "prebuild": "node scripts/gen-tokens.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/poppins": "^5.3.0",
